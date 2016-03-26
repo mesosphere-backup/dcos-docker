@@ -1,0 +1,4 @@
+*.lck
+boot/
+master/
+slave/

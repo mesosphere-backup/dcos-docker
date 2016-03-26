@@ -14,7 +14,7 @@ sudo mkdir -p boot/etc/systemd/network
 sudo tee boot/etc/resolv.conf > /dev/null <<EOF
 nameserver 8.8.8.8
 EOF
-sudo chroot boot yum install -y libseccomp openssh-server iproute systemd-networkd sudo openssh-clients libselinux-utils wget git unzip curl xz ipset
+sudo chroot boot yum install -y libseccomp openssh-server iproute systemd-networkd sudo openssh-clients libselinux-utils wget git unzip curl xz ipset net-tools nano
 sudo chroot boot systemctl mask systemd-remount-fs.service network.service rhel-dmesg.service
 sudo chroot boot systemctl enable systemd-networkd.service sshd.service
 sudo chroot boot groupadd -r nogroup
@@ -26,7 +26,7 @@ sudo tee master/etc/systemd/network/master.network > /dev/null <<EOF
 Name=host0
 [Network]
 DNS=8.8.8.8
-Address=172.17.0.2/24
+Address=172.17.0.100/24
 Gateway=172.17.0.1
 EOF
 
@@ -36,6 +36,6 @@ sudo tee slave/etc/systemd/network/slave.network > /dev/null <<EOF
 Name=host0
 [Network]
 DNS=8.8.8.8
-Address=172.17.0.3/24
+Address=172.17.0.101/24
 Gateway=172.17.0.1
 EOF
