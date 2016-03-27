@@ -1,23 +1,36 @@
 #!/bin/bash -xe
 
 #docker pull centos:centos7
-#docker run -i -t --name=centos7 centos:centos7 /bin/true
-#docker rm -f centos7 || true
 #docker export "$(docker create --name centos7 centos:centos7 /bin/true)" > centos7.tar
 
-sudo rm -rf boot master slave
+#docker pull fedora:23
+#docker export "$(docker create --name f23 fedora:23 /bin/true)" > f23.tar
+
+sudo rm -rf master slave
 
 mkdir -p boot
 sudo tar -x -C boot -f centos7.tar
-echo -ne 'secret123\nsecret123\n' | sudo chroot boot passwd root
+#sudo tar -x -C boot -f f23.tar
+
+#PKGMGR=/usr/bin/dnf
+PKGMGR=/usr/bin/yum
+
 sudo mkdir -p boot/etc/systemd/network
 sudo tee boot/etc/resolv.conf > /dev/null <<EOF
 nameserver 8.8.8.8
 EOF
-sudo chroot boot yum install -y libseccomp openssh-server iproute systemd-networkd sudo openssh-clients libselinux-utils wget git unzip curl xz ipset net-tools nano
-sudo chroot boot systemctl mask systemd-remount-fs.service network.service rhel-dmesg.service
-sudo chroot boot systemctl enable systemd-networkd.service sshd.service
-sudo chroot boot groupadd -r nogroup
+
+sudo systemd-nspawn -D boot $PKGMGR install -y libseccomp openssh-server iproute systemd-networkd sudo openssh-clients libselinux-utils wget git unzip curl xz ipset net-tools nano passwd
+
+#sudo systemd-nspawn -q -D boot $PKGMGR install -y libseccomp openssh-server iproute sudo openssh-clients libselinux-utils wget git unzip curl xz ipset net-tools nano passwd
+
+echo -ne 'secret123\nsecret123\n' | sudo chroot boot passwd root
+
+sudo systemd-nspawn -q -D boot systemctl mask systemd-remount-fs.service network.service rhel-dmesg.service
+sudo systemd-nspawn -q -D boot systemctl enable systemd-networkd.service sshd.service
+sudo systemd-nspawn -q -D boot groupadd -r nogroup
+sudo systemd-nspawn -q -D boot rm -f /etc/securetty
+
 sudo mkdir -p boot/root/.ssh && sudo chmod 700 boot/root/.ssh && sudo cp id_rsa.pub boot/root/.ssh/authorized_keys
 
 sudo cp -a boot master
