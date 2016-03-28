@@ -13,7 +13,7 @@ docker build --rm --force-rm -t dcos-systemd-docker .
 
 for c in "${containers[@]}"; do
 	# start the container
-	docker run -d \
+	docker run -dt \
 		--privileged \
 		--tmpfs /run:rw --tmpfs /tmp:rw \
 		-e "container=${c}" \

@@ -35,6 +35,7 @@ RUN yum install -y \
 ENV DIND_COMMIT 3b5fac462d21ca164b3778647420016315289034
 ENV DOCKER_VERSION 1.10.3
 ENV TERM xterm
+ENV LANG en_US.UTF-8
 
 # install dind and docker
 RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
