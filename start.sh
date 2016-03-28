@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-containers=( sysd-dcos-master sysd-dcos-agent )
+containers=( sysd-dcos-master sysd-dcos-agent sysd-dcos-installer )
 
 # cleanup old containers
 for c in "${containers[@]}"; do
@@ -60,13 +60,16 @@ EOF
 
 # generating config
 echo "Generating config..."
-docker exec sysd-dcos-master ./dcos_generate_config.ee.sh --genconf --offline -v
+docker exec sysd-dcos-installer ./dcos_generate_config.ee.sh --genconf --offline -v
 
 echo "Running preflight..."
-docker exec sysd-dcos-master ./dcos_generate_config.ee.sh --preflight --offline -v
+docker exec sysd-dcos-installer ./dcos_generate_config.ee.sh --preflight --offline -v
 
 echo "Running deploy..."
-docker exec sysd-dcos-master ./dcos_generate_config.ee.sh --deploy --offline -v
+docker exec sysd-dcos-installer ./dcos_generate_config.ee.sh --deploy --offline -v
+
+# remove the installer container
+docker rm -f sysd-dcos-installer
 
 echo "Master IP: $master_ip"
 echo "Agent  IP: $agent_ip"

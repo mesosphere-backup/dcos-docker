@@ -6,10 +6,14 @@ RUN yum install -y \
 	ca-certificates \
 	curl \
 	git \
+	iproute \
+	ipset \
 	iptables \
+	libcgroup \
+	libselinux-utils \
+	net-tools \
 	openssh-client \
 	openssh-server \
-	libselinux-utils \
 	sudo \
 	systemd \
 	unzip \
@@ -52,7 +56,8 @@ COPY dcos_generate_config.ee.sh /
 COPY docker.service /lib/systemd/system/
 COPY ssh /root/.ssh
 RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys \
-	&& chmod +x /dcos_generate_config.ee.sh
+	&& chmod +x /dcos_generate_config.ee.sh \
+	&& ln -vf /bin/true /usr/sbin/modprobe
 
 RUN systemctl enable docker.service
 
