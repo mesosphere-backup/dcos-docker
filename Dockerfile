@@ -51,7 +51,8 @@ COPY genconf /genconf
 COPY dcos_generate_config.ee.sh /
 COPY docker.service /lib/systemd/system/
 COPY ssh /root/.ssh
-RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys
+RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys \
+	&& chmod +x /dcos_generate_config.ee.sh
 
 RUN systemctl enable docker.service
 

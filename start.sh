@@ -19,7 +19,6 @@ for c in "${containers[@]}"; do
 		-e "container=${c}" \
 		--name "$c" \
 		--hostname "$c" \
-		-e TERM \
 		-v $(pwd)/genconf/config.yaml:/genconf/config.yaml \
 		dcos-systemd-docker
 
