@@ -26,7 +26,7 @@ if ! mountpoint -q /sys/fs/cgroup; then
 	mkdir -p "$CGROUP"
 
 	if ! mountpoint -q "$CGROUP"; then
-		mount -n -t tmpfs -o uid=0,gid=0,mode=0755 cgroup $CGROUP || {
+		mount -n -t tmpfs -o uid=0,gid=0,mode=0777 cgroup $CGROUP || {
 			echo >&2 'Could not make a tmpfs mount. Did you use --privileged?'
 			exit 1
 		}
