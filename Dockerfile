@@ -2,6 +2,7 @@ FROM centos:7
 
 RUN yum install -y \
 	aufs-tools \
+	bash-completion \
 	btrfs-progs \
 	ca-certificates \
 	curl \
@@ -49,17 +50,14 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 	&& groupadd -r nogroup \
 	&& groupadd docker \
 	&& gpasswd -a "root" docker \
-	&& rm -f /etc/securetty
+	&& rm -f /etc/securetty \
+	&& ln -vf /bin/true /usr/sbin/modprobe
 
 COPY genconf /genconf
-COPY dcos_generate_config.ee.sh /
 COPY docker.service /lib/systemd/system/
 COPY ssh /root/.ssh
 RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys \
-	&& chmod +x /dcos_generate_config.ee.sh \
-	&& ln -vf /bin/true /usr/sbin/modprobe
-
-RUN systemctl enable docker.service
+	&& systemctl enable docker.service
 
 ENTRYPOINT ["dind"]
 CMD ["/sbin/init"]
