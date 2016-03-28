@@ -1,0 +1,17 @@
+---
+agent_list:
+- 172.17.0.3
+bootstrap_url: file:///opt/dcos_install_tmp
+cluster_name: DCOS
+exhibitor_storage_backend: static
+master_discovery: static
+master_list:
+- 172.17.0.2
+process_timeout: 10000
+resolvers:
+- 8.8.8.8
+- 8.8.4.4
+ssh_port: 22
+ssh_user: root
+superuser_password_hash: =656000hVo9bKXfWRg1OCdX2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
+superuser_username: admin
