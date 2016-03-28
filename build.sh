@@ -21,11 +21,9 @@ nameserver 8.8.8.8
 EOF
 
 sudo systemd-nspawn -D boot $PKGMGR install -y libseccomp openssh-server iproute systemd-networkd sudo openssh-clients libselinux-utils wget git unzip curl xz ipset net-tools nano passwd
-
 #sudo systemd-nspawn -q -D boot $PKGMGR install -y libseccomp openssh-server iproute sudo openssh-clients libselinux-utils wget git unzip curl xz ipset net-tools nano passwd
 
-echo -ne 'secret123\nsecret123\n' | sudo chroot boot passwd root
-
+echo secret123 | sudo chroot boot passwd root --stdin
 sudo systemd-nspawn -q -D boot systemctl mask systemd-remount-fs.service network.service rhel-dmesg.service
 sudo systemd-nspawn -q -D boot systemctl enable systemd-networkd.service sshd.service
 sudo systemd-nspawn -q -D boot groupadd -r nogroup
