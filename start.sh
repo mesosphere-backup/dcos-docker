@@ -68,3 +68,6 @@ docker exec sysd-dcos-master ./dcos_generate_config.ee.sh --preflight --offline 
 
 echo "Running deploy..."
 docker exec sysd-dcos-master ./dcos_generate_config.ee.sh --deploy --offline -v
+
+echo "Master IP: $master_ip"
+echo "Agent  IP: $agent_ip"
