@@ -43,9 +43,7 @@ ENV TERM xterm
 ENV LANG en_US.UTF-8
 
 # install dind and docker
-RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
-	&& curl -sSL "https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}" -o /usr/bin/docker \
-	&& chmod +x /usr/local/bin/dind \
+RUN curl -sSL "https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}" -o /usr/bin/docker \
 	&& chmod +x /usr/bin/docker \
 	&& groupadd -r nogroup \
 	&& groupadd docker \
@@ -56,6 +54,7 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 COPY genconf /genconf
 COPY docker.service /lib/systemd/system/
 COPY ssh /root/.ssh
+COPY dind /usr/local/bin/dind
 RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys \
 	&& systemctl enable docker.service
 

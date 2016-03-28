@@ -23,7 +23,10 @@ for c in "${containers[@]}"; do
 		-v $(pwd)/dcos_generate_config.ee.sh:/dcos_generate_config.ee.sh \
 		-v $(pwd)/genconf/config.yaml:/genconf/config.yaml \
 		dcos-systemd-docker
+done
 
+# then exec in, so we give enough time for things to start
+for c in "${containers[@]}"; do
 	# start docker
 	docker exec "$c" systemctl start docker
 	# start sshd
