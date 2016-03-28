@@ -16,17 +16,13 @@ for c in "${containers[@]}"; do
 	docker run -dt \
 		--privileged \
 		--tmpfs /run:rw --tmpfs /tmp:rw \
-		--tmpfs /sys/fs/cgroup:rw \
 		-e "container=${c}" \
 		--name "$c" \
 		--hostname "$c" \
 		-v $(pwd)/dcos_generate_config.ee.sh:/dcos_generate_config.ee.sh \
 		-v $(pwd)/genconf/config.yaml:/genconf/config.yaml \
 		dcos-systemd-docker
-done
 
-# then exec in, so we give enough time for things to start
-for c in "${containers[@]}"; do
 	# start docker
 	docker exec "$c" systemctl start docker
 	# start sshd
