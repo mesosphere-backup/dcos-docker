@@ -55,7 +55,7 @@ resolvers:
 - 8.8.4.4
 ssh_port: 22
 ssh_user: root
-superuser_password_hash: $6$rounds=656000$5hVo9bKXfWRg1OCd$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
+superuser_password_hash: \$6\$rounds=656000\$5hVo9bKXfWRg1OCd\$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
 superuser_username: admin
 EOF
 
