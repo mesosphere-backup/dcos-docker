@@ -23,6 +23,8 @@ for c in "${containers[@]}"; do
 		-v $(pwd)/genconf/config.yaml:/genconf/config.yaml \
 		dcos-systemd-docker
 
+	sleep 2
+
 	# start docker
 	docker exec "$c" systemctl start docker
 	# start sshd
