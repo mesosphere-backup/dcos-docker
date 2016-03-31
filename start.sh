@@ -13,6 +13,8 @@ done
 # build the image
 docker build --rm --force-rm -t dcos-systemd-docker .
 
+touch $(pwd)/genconf/config.yaml
+
 for c in "${containers[@]}"; do
 	# start the container
 	docker run -dt \
@@ -65,13 +67,13 @@ EOF
 
 # generating config
 echo "Generating config..."
-docker exec sysd-dcos-installer ./dcos_generate_config.sh --genconf --offline -v
+docker exec sysd-dcos-installer bash /dcos_generate_config.sh --genconf --offline -v
 
 echo "Running preflight..."
-docker exec sysd-dcos-installer ./dcos_generate_config.sh --preflight --offline -v
+docker exec sysd-dcos-installer bash /dcos_generate_config.sh --preflight --offline -v
 
 echo "Running deploy..."
-docker exec sysd-dcos-installer ./dcos_generate_config.sh --deploy --offline -v
+docker exec sysd-dcos-installer bash /dcos_generate_config.sh --deploy --offline -v
 
 # remove the installer container
 docker rm -f sysd-dcos-installer
