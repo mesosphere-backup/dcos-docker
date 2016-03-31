@@ -23,6 +23,8 @@ for c in "${containers[@]}"; do
 		-e "container=${c}" \
 		--name "$c" \
 		--hostname "$c" \
+		-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+		-v /var/run/systemd/system:/var/run/systemd/system \
 		-v $(pwd)/${DCOS_GENERATE_CONFIG_PATH}:/dcos_generate_config.sh \
 		-v $(pwd)/genconf/config.yaml:/genconf/config.yaml \
 		dcos-systemd-docker
