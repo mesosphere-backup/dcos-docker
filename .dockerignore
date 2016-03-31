@@ -2,4 +2,4 @@ Dockerfile
 .git
 start.sh
 README.md
-dcos_generate_config.ee.sh
+dcos_generate_config*.sh
