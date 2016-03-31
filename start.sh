@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+DCOS_GENERATE_CONFIG_PATH=${DCOS_GENERATE_CONFIG_PATH:-dcos_generate_config.sh}
+
 containers=( sysd-dcos-master sysd-dcos-agent sysd-dcos-installer )
 
 # cleanup old containers
@@ -19,7 +21,7 @@ for c in "${containers[@]}"; do
 		-e "container=${c}" \
 		--name "$c" \
 		--hostname "$c" \
-		-v $(pwd)/dcos_generate_config.ee.sh:/dcos_generate_config.ee.sh \
+		-v $(pwd)/${DCOS_GENERATE_CONFIG_PATH}:/dcos_generate_config.sh \
 		-v $(pwd)/genconf/config.yaml:/genconf/config.yaml \
 		dcos-systemd-docker
 
@@ -63,13 +65,13 @@ EOF
 
 # generating config
 echo "Generating config..."
-docker exec sysd-dcos-installer ./dcos_generate_config.ee.sh --genconf --offline -v
+docker exec sysd-dcos-installer ./dcos_generate_config.sh --genconf --offline -v
 
 echo "Running preflight..."
-docker exec sysd-dcos-installer ./dcos_generate_config.ee.sh --preflight --offline -v
+docker exec sysd-dcos-installer ./dcos_generate_config.sh --preflight --offline -v
 
 echo "Running deploy..."
-docker exec sysd-dcos-installer ./dcos_generate_config.ee.sh --deploy --offline -v
+docker exec sysd-dcos-installer ./dcos_generate_config.sh --deploy --offline -v
 
 # remove the installer container
 docker rm -f sysd-dcos-installer
