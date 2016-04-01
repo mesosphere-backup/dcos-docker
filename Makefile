@@ -12,7 +12,8 @@ DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 
 SSH_DIR := $(CURDIR)/include/ssh
-SSH_KEY := $(SSH_DIR)/id_rsa
+SSH_ALGO := ed25519
+SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
@@ -32,7 +33,7 @@ all: clean deploy
 	@echo "Agent IP:  $(AGENT_IP)"
 	@echo "Mini DCOS has been started, open http://$(MASTER_IP) in your browser."
 
-build: ## Build the docker image that will be used for the containers.
+build: ssh ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
@@ -40,14 +41,14 @@ $(SSH_DIR):
 	@mkdir -p $@
 
 $(SSH_KEY): $(SSH_DIR)
-	@ssh-keygen -f $@ -t rsa -N ''
+	@ssh-keygen -f $@ -t $(SSH_ALGO) -N ''
 
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
 ssh: $(CURDIR)/genconf/ssh_key
 
-start: ssh build master agent installer
+start: build master agent installer
 
 master: ## Starts the container for a dcos master.
 	@echo "+ Starting dcos master"
