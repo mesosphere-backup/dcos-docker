@@ -68,6 +68,7 @@ master: ## Starts the container for a dcos master.
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
+	@sudo systemctl start mesos_executors.slice
 
 agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
 	@echo "+ Starting dcos agent"
@@ -81,7 +82,6 @@ agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
 	@docker exec $(AGENT_CTR) systemctl start docker
 	@docker exec $(AGENT_CTR) systemctl start sshd
 	@docker exec $(AGENT_CTR) docker ps -a > /dev/null # just to make sure docker is up
-	@sudo systemctl start mesos_executors.slice
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
@@ -172,10 +172,12 @@ deploy: preflight ## Run the dcos installer with --deploy.
 clean: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -f $(MASTER_CTR) $(AGENT_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
 
-clean-files: ## Removes the generated ssh keys, service files, etc for the cluster.
+clean-all: clean ## Stops all containers and removes all generated files for the cluster.
 	@rm -f $(CURDIR)/genconf/ssh_key
 	@rm -rf $(SSH_DIR)
 	@rm -rf $(SERVICE_DIR)
+	@sudo systemctl start mesos_executors.slice
+	@sudo rm -f $(MESOS_SLICE)
 
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

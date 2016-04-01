@@ -1,4 +1,4 @@
-## mini-dcos
+## dcos-docker
 
 Run dcos with systemd and docker in two containers.
 
@@ -12,7 +12,7 @@ Run dcos with systemd and docker in two containers.
 $ make help
 agent                          Starts the container for a dcos agent.
 build                          Build the docker image that will be used for the containers.
-clean-files                    Removes the generated ssh keys, service files, etc for the cluster.
+clean-all                      Stops all containers and removes all generated files for the cluster.
 clean                          Removes and cleans up the master, agent, and installer containers.
 deploy                         Run the dcos installer with --deploy.
 genconf                        Run the dcos installer with --genconf.
