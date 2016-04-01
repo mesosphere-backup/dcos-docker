@@ -13,6 +13,7 @@ $ make help
 agent                          Starts the container for a dcos agent.
 build                          Build the docker image that will be used for the containers.
 clean                          Removes and cleans up the master, agent, and installer containers.
+clean-ssh                      Removes the generated ssh keys for the cluster.
 deploy                         Run the dcos installer with --deploy.
 genconf                        Run the dcos installer with --genconf.
 help                           Generate the Makefile help
