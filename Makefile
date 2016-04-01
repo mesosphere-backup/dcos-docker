@@ -63,6 +63,7 @@ ifeq (,$(wildcard $(DCOS_GENERATE_CONFIG_PATH)))
     $(error $(DCOS_GENERATE_CONFIG_PATH) does not exist, exiting!)
 endif
 	@chmod +x $(DCOS_GENERATE_CONFIG_PATH)
+	@touch $(CONFIG_FILE)
 	@docker run -dt --privileged \
 		$(TMPFS_MOUNTS) \
 		$(INSTALLER_MOUNTS) \
@@ -101,7 +102,7 @@ superuser_password_hash: $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6h
 superuser_username: admin
 endef
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
-	@echo '$(subst $(newline),\n,${CONFIG_BODY})' > $(CONFIG_FILE)
+	@echo -e '$(subst $(newline),\n,${CONFIG_BODY})' > $(CONFIG_FILE)
 
 genconf: $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"
