@@ -1,4 +1,5 @@
 .PHONY: all build start master agent installer ips genconf preflight deploy clean help
+SHELL := /bin/bash
 
 # variables for container & image names
 MASTER_CTR:= mini-dcos-master
@@ -13,7 +14,7 @@ CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 # variables for various docker args
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-	-v /var/run/systemd/system:/var/run/systemd/system
+	-v /run/systemd/system:/run/systemd/system
 TMPFS_MOUNTS := \
 	--tmpfs /run:rw \
 	--tmpfs /tmp:rw
@@ -22,9 +23,10 @@ INSTALLER_MOUNTS := \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
-all: deploy
+all: clean deploy
 	@echo "Master IP: $(MASTER_IP)"
 	@echo "Agent IP:  $(AGENT_IP)"
+	@echo "Mini DCOS has been started, open http://$(MASTER_IP) in your browser."
 
 build: ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
@@ -34,7 +36,7 @@ start: build master agent installer
 
 master: ## Starts the container for a dcos master.
 	@echo "+ Starting dcos master"
-	@docker run -dt --privileged \
+	docker run -dt --privileged \
 		$(TMPFS_MOUNTS) \
 		--name $(MASTER_CTR) \
 		-e "container=$(MASTER_CTR)" \
@@ -118,7 +120,7 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
 clean: ## Removes and cleans up the master, agent, and installer containers.
-	@docker rm -f $(MASTER_CTR) $(AGENT_CTR) $(INSTALLER_CTR) > /dev/null 2>&1
+	@docker rm -f $(MASTER_CTR) $(AGENT_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
 
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
