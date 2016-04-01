@@ -54,8 +54,8 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 	&& ln -vf /bin/true /usr/sbin/modprobe
 
 COPY genconf /genconf
-COPY docker.service /lib/systemd/system/
-COPY ssh /root/.ssh
+COPY include/systemd/docker.service /lib/systemd/system/
+COPY include/ssh /root/.ssh
 RUN cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys
 
 ENTRYPOINT ["dind"]
