@@ -25,8 +25,4 @@ preflight                      Run the dcos installer with --preflight.
 
 ### Requirements
 
-- A Linux machine with systemd and overlayfs
-
-### TODO
-
-- Make the docker graphdriver configurable
+- A Linux machine with systemd and docker installed.
