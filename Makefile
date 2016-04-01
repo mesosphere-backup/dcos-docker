@@ -13,8 +13,7 @@ CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 
 # variables for various docker args
 SYSTEMD_MOUNTS := \
-	-v /sys/fs/cgroup:/sys/fs/cgroup:ro \
-	-v /run/systemd/system:/run/systemd/system
+	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
 TMPFS_MOUNTS := \
 	--tmpfs /run:rw \
 	--tmpfs /tmp:rw
@@ -22,6 +21,8 @@ INSTALLER_MOUNTS := \
 	-v $(CONFIG_FILE):/genconf/config.yaml \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
+
+MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
 all: clean deploy
 	@echo "Master IP: $(MASTER_IP)"
@@ -36,7 +37,7 @@ start: build master agent installer
 
 master: ## Starts the container for a dcos master.
 	@echo "+ Starting dcos master"
-	docker run -dt --privileged \
+	@docker run -dt --privileged \
 		$(TMPFS_MOUNTS) \
 		--name $(MASTER_CTR) \
 		-e "container=$(MASTER_CTR)" \
@@ -46,9 +47,12 @@ master: ## Starts the container for a dcos master.
 	@docker exec $(MASTER_CTR) systemctl start sshd
 	@docker exec $(MASTER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
-agent: ## Starts the container for a dcos agent.
+$(MESOS_SLICE):
+	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $(MESOS_SLICE)
+
+agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
 	@echo "+ Starting dcos agent"
-	docker run -dt --privileged \
+	@docker run -dt --privileged \
 		$(TMPFS_MOUNTS) \
 		$(SYSTEMD_MOUNTS) \
 		--name $(AGENT_CTR) \
@@ -58,6 +62,7 @@ agent: ## Starts the container for a dcos agent.
 	@docker exec $(AGENT_CTR) systemctl start docker
 	@docker exec $(AGENT_CTR) systemctl start sshd
 	@docker exec $(AGENT_CTR) docker ps -a > /dev/null # just to make sure docker is up
+	@sudo systemctl start mesos_executors.slice
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
