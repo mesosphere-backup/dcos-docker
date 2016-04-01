@@ -1,6 +1,9 @@
 .PHONY: all build start master agent installer ips genconf preflight deploy clean help
 SHELL := /bin/bash
 
+# set the number of agents
+AGENTS := 3
+
 # variables for container & image names
 MASTER_CTR:= dcos-docker-master
 AGENT_CTR := dcos-docker-agent
@@ -34,7 +37,7 @@ IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}
 
 all: clean deploy
 	@echo "Master IP: $(MASTER_IP)"
-	@echo "Agent IP:  $(AGENT_IP)"
+	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "Mini DCOS has been started, open http://$(MASTER_IP) in your browser."
 
 build: $(DOCKER_SERVICE_FILE) ssh ## Build the docker image that will be used for the containers.
@@ -70,18 +73,21 @@ $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
+define start_agent
+echo "+ Starting dcos agent no. $(1)";
+docker run -dt --privileged \
+	$(TMPFS_MOUNTS) \
+	$(SYSTEMD_MOUNTS) \
+	--name $(AGENT_CTR)$(1)\
+	-e "container=$(AGENT_CTR)$(1)" \
+	--hostname $(AGENT_CTR)$(1) \
+	$(DOCKER_IMAGE);
+docker exec $(AGENT_CTR)$(1) systemctl start docker;
+docker exec $(AGENT_CTR)$(1) systemctl start sshd;
+docker exec $(AGENT_CTR)$(1) docker ps -a > /dev/null;
+endef
 agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
-	@echo "+ Starting dcos agent"
-	@docker run -dt --privileged \
-		$(TMPFS_MOUNTS) \
-		$(SYSTEMD_MOUNTS) \
-		--name $(AGENT_CTR) \
-		-e "container=$(AGENT_CTR)" \
-		--hostname $(AGENT_CTR) \
-		$(DOCKER_IMAGE)
-	@docker exec $(AGENT_CTR) systemctl start docker
-	@docker exec $(AGENT_CTR) systemctl start sshd
-	@docker exec $(AGENT_CTR) docker ps -a > /dev/null # just to make sure docker is up
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_agent,$(NUM)))
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
@@ -100,54 +106,15 @@ endif
 	@docker exec $(INSTALLER_CTR) systemctl start docker
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
+define get_agent_ips
+$(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
+endef
 ips: start ## Gets the ips for the currently running containers.
 	$(eval MASTER_IP := $(shell $(IP_CMD) $(MASTER_CTR)))
-	$(eval AGENT_IP := $(shell $(IP_CMD) $(AGENT_CTR)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 
-define newline
-
-
-endef
-define DOCKER_SERVICE_BODY
-[Unit]
-Description=Docker Application Container Engine
-Documentation=https://docs.docker.com
-
-[Service]
-# the default is not to use systemd for cgroups because the delegate issues still
-# exists and systemd currently does not support the cgroup feature set required
-# for containers run by docker
-ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER}
-MountFlags=slave
-LimitNOFILE=1048576
-LimitNPROC=1048576
-LimitCORE=infinity
-Delegate=yes
-TimeoutStartSec=0
-
-[Install]
-WantedBy=multi-user.target
-endef
-define CONFIG_BODY
----
-agent_list:
-- ${AGENT_IP}
-bootstrap_url: file:///opt/dcos_install_tmp
-cluster_name: DCOS
-exhibitor_storage_backend: static
-master_discovery: static
-master_list:
-- ${MASTER_IP}
-process_timeout: 10000
-resolvers:
-- 8.8.8.8
-- 8.8.4.4
-ssh_port: 22
-ssh_user: root
-superuser_password_hash: $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
-superuser_username: admin
-endef
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
+	$(eval AGENT_IP_LIST := $(subst $(space),\n- ,${AGENT_IPS}))
 	@echo -e '$(subst $(newline),\n,${CONFIG_BODY})' > $@
 
 $(SERVICE_DIR):
@@ -169,8 +136,12 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
+define remove_container
+docker rm -f $(AGENT_CTR)$(1) > /dev/null 2>&1 || true;
+endef
 clean: ## Removes and cleans up the master, agent, and installer containers.
-	@docker rm -f $(MASTER_CTR) $(AGENT_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
+	@docker rm -f $(MASTER_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(NUM)))
 
 clean-all: clean ## Stops all containers and removes all generated files for the cluster.
 	@rm -f $(CURDIR)/genconf/ssh_key
@@ -181,3 +152,53 @@ clean-all: clean ## Stops all containers and removes all generated files for the
 
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+# helper definitions
+space:= $(empty) $(empty)
+define newline
+
+
+endef
+
+# define the template for docker.service
+define DOCKER_SERVICE_BODY
+[Unit]
+Description=Docker Application Container Engine
+Documentation=https://docs.docker.com
+
+[Service]
+# the default is not to use systemd for cgroups because the delegate issues still
+# exists and systemd currently does not support the cgroup feature set required
+# for containers run by docker
+ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER}
+MountFlags=slave
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+Delegate=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+endef
+
+# define the template for genconf/config.yaml
+define CONFIG_BODY
+---
+agent_list:
+- ${AGENT_IP_LIST}
+bootstrap_url: file:///opt/dcos_install_tmp
+cluster_name: DCOS
+exhibitor_storage_backend: static
+master_discovery: static
+master_list:
+- ${MASTER_IP}
+process_timeout: 10000
+resolvers:
+- 8.8.8.8
+- 8.8.4.4
+ssh_port: 22
+ssh_user: root
+superuser_password_hash: $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
+superuser_username: admin
+endef
