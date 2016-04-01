@@ -21,3 +21,11 @@ ips                            Gets the ips for the currently running containers
 master                         Starts the container for a dcos master.
 preflight                      Run the dcos installer with --preflight.
 ```
+
+### Requirements
+
+- A Linux machine with systemd and overlayfs
+
+### TODO
+
+- Make the docker graphdriver configurable
