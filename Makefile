@@ -11,6 +11,11 @@ DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 
+SSH_DIR := $(CURDIR)/include/ssh
+SSH_KEY := $(SSH_DIR)/id_rsa
+
+MESOS_SLICE := /run/systemd/system/mesos_executors.slice
+
 # variables for various docker args
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
@@ -22,8 +27,6 @@ INSTALLER_MOUNTS := \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
-MESOS_SLICE := /run/systemd/system/mesos_executors.slice
-
 all: clean deploy
 	@echo "Master IP: $(MASTER_IP)"
 	@echo "Agent IP:  $(AGENT_IP)"
@@ -33,7 +36,18 @@ build: ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
-start: build master agent installer
+$(SSH_DIR):
+	@mkdir -p $@
+
+$(SSH_KEY): $(SSH_DIR)
+	@ssh-keygen -f $@ -t rsa -N ''
+
+$(CURDIR)/genconf/ssh_key: $(SSH_KEY)
+	@cp $(SSH_KEY) $@
+
+ssh: $(CURDIR)/genconf/ssh_key
+
+start: ssh build master agent installer
 
 master: ## Starts the container for a dcos master.
 	@echo "+ Starting dcos master"
@@ -48,7 +62,7 @@ master: ## Starts the container for a dcos master.
 	@docker exec $(MASTER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
 $(MESOS_SLICE):
-	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $(MESOS_SLICE)
+	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 
 agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
 	@echo "+ Starting dcos agent"
@@ -109,7 +123,7 @@ superuser_password_hash: $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6h
 superuser_username: admin
 endef
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
-	@echo -e '$(subst $(newline),\n,${CONFIG_BODY})' > $(CONFIG_FILE)
+	@echo -e '$(subst $(newline),\n,${CONFIG_BODY})' > $@
 
 genconf: $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"
