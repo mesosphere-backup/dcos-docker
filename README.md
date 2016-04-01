@@ -6,6 +6,10 @@ Run dcos with systemd and docker in two containers.
 
 2. From this directory run `make`.
 
+> **NOTE**: This defaults to 1 master and 3 agents, you can change the number
+> of agents by setting the variable `AGENTS`, for example `make AGENTS=5` will
+> start 5 agents.
+
 **Makefile usage:**
 
 ```console
