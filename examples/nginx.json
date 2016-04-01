@@ -1,0 +1,11 @@
+{
+    "container": {
+        "docker": {
+            "image": "nginx"
+        },
+        "type": "DOCKER"
+    },
+    "id": "/nginx",
+    "instances": 1,
+    "ports": [80]
+}

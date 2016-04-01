@@ -1,30 +1,28 @@
-bind-mounting docker into nspawn containers breaks --volume
+## dcos-docker
 
-ssh from genconf container to master, slave containers seems kinda broken, hence --net=host in gen.sh
+Run dcos with systemd and docker in two containers.
 
-installer in nspawn dies with:
+1. Put a `dcos_generate_config.sh` in the root of this directory.
 
-Failed to restart docker.service: Unit docker.service failed to load: No such file or directory.
+2. From this directory run `make`.
 
-if dcos-spartan.service is failing, modprobe dummy on the host before starting containers
+**Makefile usage:**
 
-modprobe is bind-mounted to /bin/true because dcos-spartan.service runs modprobe
+```console
+$ make help
+agent                          Starts the container for a dcos agent.
+build                          Build the docker image that will be used for the containers.
+clean-all                      Stops all containers and removes all generated files for the cluster.
+clean                          Removes and cleans up the master, agent, and installer containers.
+deploy                         Run the dcos installer with --deploy.
+genconf                        Run the dcos installer with --genconf.
+help                           Generate the Makefile help
+installer                      Starts the container for the dcos installer.
+ips                            Gets the ips for the currently running containers.
+master                         Starts the container for a dcos master.
+preflight                      Run the dcos installer with --preflight.
+```
 
-lstat("/sys/fs/cgroup/systemd/mesos_executors.slice", 0x7ffec72735b0) = -1 ENOENT (No such file or directory)
+### Requirements
 
-/sys/fs/cgroup/systemd/machine.slice/machine-slave.scope/mesos_executors.slice
-
-76a4e18d (Joris Van Remoortere 2015-09-23 17:46:45 -0700 125)   // If flags->runtime_directory doesn't exist, then we can't proceed.
-76a4e18d (Joris Van Remoortere 2015-09-23 17:46:45 -0700 126)   if (!os::exists(CHECK_NOTNULL(systemd_flags)->runtime_directory)) {
-76a4e18d (Joris Van Remoortere 2015-09-23 17:46:45 -0700 127)     return Error("Failed to locate systemd runtime directory: " +
-76a4e18d (Joris Van Remoortere 2015-09-23 17:46:45 -0700 128)                  CHECK_NOTNULL(systemd_flags)->runtime_directory);
-76a4e18d (Joris Van Remoortere 2015-09-23 17:46:45 -0700 129)   }
-
-mesos-slave should probably be looking at ControlGroup= in systemctl show mesos_executors.slice
-
-pam_securetty(login:auth): access denied: tty 'pts/0' is not secure !
-rm -f /etc/securetty
-
-dcos JAVA_HOME points to the jre directory which makes mesos configure sad
-dcos java is missing jni.h because it's only a JRE now
-will have to have a local jdk to do local dev
+- A Linux machine with systemd and docker installed.
