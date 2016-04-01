@@ -142,5 +142,9 @@ deploy: preflight ## Run the dcos installer with --deploy.
 clean: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -f $(MASTER_CTR) $(AGENT_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
 
+clean-ssh: ## Removes the generated ssh keys for the cluster.
+	@rm -f $(CURDIR)/genconf/ssh_key
+	@rm -rf $(SSHDIR)
+
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
