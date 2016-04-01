@@ -1,0 +1,11 @@
+{
+    "container": {
+        "docker": {
+            "image": "jess/hello"
+        },
+        "type": "DOCKER"
+    },
+    "id": "/hello",
+    "instances": 3,
+    "ports": [0]
+}

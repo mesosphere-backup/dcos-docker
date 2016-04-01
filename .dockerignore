@@ -3,3 +3,4 @@ Dockerfile
 start.sh
 README.md
 dcos_generate_config*.sh
+examples
