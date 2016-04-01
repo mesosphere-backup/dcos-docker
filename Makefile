@@ -2,10 +2,10 @@
 SHELL := /bin/bash
 
 # variables for container & image names
-MASTER_CTR:= mini-dcos-master
-AGENT_CTR := mini-dcos-agent
-INSTALLER_CTR := mini-dcos-installer
-DOCKER_IMAGE := mesosphere/mini-dcos
+MASTER_CTR:= dcos-docker-master
+AGENT_CTR := dcos-docker-agent
+INSTALLER_CTR := dcos-docker-installer
+DOCKER_IMAGE := mesosphere/dcos-docker
 # set the graph driver as the current graphdriver if not set
 DOCKER_GRAPHDRIVER := $(if $(DOCKER_GRAPHDRIVER),$(DOCKER_GRAPHDRIVER),$(shell docker info | grep "Storage Driver" | sed 's/.*: //'))
 
@@ -62,7 +62,6 @@ master: ## Starts the container for a dcos master.
 		-e "container=$(MASTER_CTR)" \
 		--hostname $(MASTER_CTR) \
 		$(DOCKER_IMAGE)
-	@sleep 2
 	@docker exec $(MASTER_CTR) systemctl start docker
 	@docker exec $(MASTER_CTR) systemctl start sshd
 	@docker exec $(MASTER_CTR) docker ps -a > /dev/null # just to make sure docker is up
@@ -79,7 +78,6 @@ agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
 		-e "container=$(AGENT_CTR)" \
 		--hostname $(AGENT_CTR) \
 		$(DOCKER_IMAGE)
-	@sleep 2
 	@docker exec $(AGENT_CTR) systemctl start docker
 	@docker exec $(AGENT_CTR) systemctl start sshd
 	@docker exec $(AGENT_CTR) docker ps -a > /dev/null # just to make sure docker is up
@@ -99,7 +97,6 @@ endif
 		-e "container=$(INSTALLER_CTR)" \
 		--hostname $(INSTALLER_CTR) \
 		$(DOCKER_IMAGE)
-	@sleep 2
 	@docker exec $(INSTALLER_CTR) systemctl start docker
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
