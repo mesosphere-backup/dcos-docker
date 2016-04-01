@@ -1,4 +1,4 @@
-.PHONY: all build start master agent installer ips genconf preflight deploy clean help
+.PHONY: all build start master agent installer ips genconf preflight deploy clean clean-containers help
 SHELL := /bin/bash
 
 # set the number of agents
@@ -35,12 +35,12 @@ INSTALLER_MOUNTS := \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
-all: clean deploy
+all: clean-containers deploy
 	@echo "Master IP: $(MASTER_IP)"
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "Mini DCOS has been started, open http://$(MASTER_IP) in your browser."
 
-build: $(DOCKER_SERVICE_FILE) ssh ## Build the docker image that will be used for the containers.
+build: $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
@@ -52,8 +52,6 @@ $(SSH_KEY): $(SSH_DIR)
 
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
-
-ssh: $(CURDIR)/genconf/ssh_key
 
 start: build master agent installer
 
@@ -114,14 +112,13 @@ ips: start ## Gets the ips for the currently running containers.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
-	$(eval AGENT_IP_LIST := $(subst $(space),\n- ,${AGENT_IPS}))
-	@echo -e '$(subst $(newline),\n,${CONFIG_BODY})' > $@
+	$(file >$@,$(CONFIG_BODY))
 
 $(SERVICE_DIR):
 	@mkdir -p $@
 
 $(DOCKER_SERVICE_FILE): $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
-	@echo -e '$(subst $(newline),\n,${DOCKER_SERVICE_BODY})' > $@
+	$(file >$@,$(DOCKER_SERVICE_BODY))
 
 genconf: $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"
@@ -139,11 +136,11 @@ deploy: preflight ## Run the dcos installer with --deploy.
 define remove_container
 docker rm -f $(AGENT_CTR)$(1) > /dev/null 2>&1 || true;
 endef
-clean: ## Removes and cleans up the master, agent, and installer containers.
+clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -f $(MASTER_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(NUM)))
+	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(NUM)))
 
-clean-all: clean ## Stops all containers and removes all generated files for the cluster.
+clean: clean-containers ## Stops all containers and removes all generated files for the cluster.
 	@rm -f $(CURDIR)/genconf/ssh_key
 	@rm -rf $(SSH_DIR)
 	@rm -rf $(SERVICE_DIR)
@@ -154,10 +151,12 @@ help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 # helper definitions
-space:= $(empty) $(empty)
+null :=
+space := ${null} ${null}
+${space} := ${space}# ${ } is a space.
 define newline
 
-
+-
 endef
 
 # define the template for docker.service
@@ -186,7 +185,7 @@ endef
 define CONFIG_BODY
 ---
 agent_list:
-- ${AGENT_IP_LIST}
+- $(subst ${space},${newline} ,$(AGENT_IPS))
 bootstrap_url: file:///opt/dcos_install_tmp
 cluster_name: DCOS
 exhibitor_storage_backend: static
