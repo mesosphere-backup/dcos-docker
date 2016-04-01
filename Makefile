@@ -6,10 +6,14 @@ MASTER_CTR:= mini-dcos-master
 AGENT_CTR := mini-dcos-agent
 INSTALLER_CTR := mini-dcos-installer
 DOCKER_IMAGE := mesosphere/mini-dcos
+# set the graph driver as the current graphdriver if not set
+DOCKER_GRAPHDRIVER := $(if $(DOCKER_GRAPHDRIVER),$(DOCKER_GRAPHDRIVER),$(shell docker info | grep "Storage Driver" | sed 's/.*: //'))
 
 DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
+SERVICE_DIR := $(CURDIR)/include/systemd
+DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
 SSH_DIR := $(CURDIR)/include/ssh
 SSH_ALGO := ed25519
@@ -33,7 +37,7 @@ all: clean deploy
 	@echo "Agent IP:  $(AGENT_IP)"
 	@echo "Mini DCOS has been started, open http://$(MASTER_IP) in your browser."
 
-build: ssh ## Build the docker image that will be used for the containers.
+build: $(DOCKER_SERVICE_FILE) ssh ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
@@ -107,6 +111,26 @@ define newline
 
 
 endef
+define DOCKER_SERVICE_BODY
+[Unit]
+Description=Docker Application Container Engine
+Documentation=https://docs.docker.com
+
+[Service]
+# the default is not to use systemd for cgroups because the delegate issues still
+# exists and systemd currently does not support the cgroup feature set required
+# for containers run by docker
+ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER}
+MountFlags=slave
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+Delegate=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
+endef
 define CONFIG_BODY
 ---
 agent_list:
@@ -128,6 +152,12 @@ superuser_username: admin
 endef
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
 	@echo -e '$(subst $(newline),\n,${CONFIG_BODY})' > $@
+
+$(SERVICE_DIR):
+	@mkdir -p $@
+
+$(DOCKER_SERVICE_FILE): $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
+	@echo -e '$(subst $(newline),\n,${DOCKER_SERVICE_BODY})' > $@
 
 genconf: $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"

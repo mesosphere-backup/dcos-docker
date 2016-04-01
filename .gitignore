@@ -2,4 +2,4 @@ dcos_generate_config.ee.sh
 dcos_generate_config*.sh
 genconf/config.yaml
 genconf/ssh_key
-include/ssh
+include
