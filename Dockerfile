@@ -12,6 +12,7 @@ RUN yum install -y \
 	iptables \
 	libcgroup \
 	libselinux-utils \
+	nano \
 	net-tools \
 	openssh-client \
 	openssh-server \
