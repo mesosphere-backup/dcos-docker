@@ -14,8 +14,7 @@ Run dcos with systemd and docker in two containers.
 **Makefile usage:**
 
 ```console
-$ make help
-agent                          Starts the container for a dcos agent.
+agent                          Starts the containers for dcos agents.
 build                          Build the docker image that will be used for the containers.
 clean                          Stops all containers and removes all generated files for the cluster.
 clean-containers               Removes and cleans up the master, agent, and installer containers.
@@ -24,7 +23,7 @@ genconf                        Run the dcos installer with --genconf.
 help                           Generate the Makefile help
 installer                      Starts the container for the dcos installer.
 ips                            Gets the ips for the currently running containers.
-master                         Starts the container for a dcos master.
+master                         Starts the containers for dcos masters.
 preflight                      Run the dcos installer with --preflight.
 ```
 
