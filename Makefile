@@ -2,10 +2,10 @@
 SHELL := /bin/bash
 
 # Set the number of DCOS masters.
-MASTERS := 3
+MASTERS := 1
 
 # Set the number of DCOS agents.
-AGENTS := 3
+AGENTS := 1
 
 # Variables for the resulting container & image names.
 MASTER_CTR:= dcos-docker-master
