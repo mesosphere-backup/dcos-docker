@@ -59,5 +59,8 @@ COPY include/systemd/docker.service /lib/systemd/system/
 COPY include/ssh /root/.ssh
 RUN cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys
 
+# systemd needs a different stop signal
+STOPSIGNAL SIGRTMIN+3
+
 ENTRYPOINT ["dind"]
 CMD ["/sbin/init"]
