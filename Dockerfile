@@ -49,7 +49,7 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 	&& chmod +x /usr/bin/docker \
 	&& chmod +x /usr/local/bin/dind \
 	&& groupadd -r nogroup \
-	&& groupadd docker \
+	&& groupadd -r docker \
 	&& gpasswd -a "root" docker \
 	&& rm -f /etc/securetty \
 	&& ln -vf /bin/true /usr/sbin/modprobe
