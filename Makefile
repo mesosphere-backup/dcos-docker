@@ -1,32 +1,39 @@
 .PHONY: all build start master agent installer ips genconf preflight deploy clean clean-containers help
 SHELL := /bin/bash
 
-# set the number of masters
+# Set the number of DCOS masters.
 MASTERS := 3
-# set the number of agents
+
+# Set the number of DCOS agents.
 AGENTS := 3
 
-# variables for container & image names
+# Variables for the resulting container & image names.
 MASTER_CTR:= dcos-docker-master
 AGENT_CTR := dcos-docker-agent
 INSTALLER_CTR := dcos-docker-installer
 DOCKER_IMAGE := mesosphere/dcos-docker
-# set the graph driver as the current graphdriver if not set
+
+# Variable to set the correct Docker graphdriver to the currently running
+# graphdriver. This makes docker in docker work more efficiently.
 DOCKER_GRAPHDRIVER := $(if $(DOCKER_GRAPHDRIVER),$(DOCKER_GRAPHDRIVER),$(shell docker info | grep "Storage Driver" | sed 's/.*: //'))
 
 DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 
+# Variables for the files that get generated with the correct configurations.
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
+# Variables for the ssh keys that will be generated for installing DCOS in the
+# containers.
 SSH_DIR := $(CURDIR)/include/ssh
 SSH_ALGO := ed25519
 SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
+# Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
-# variables for various docker args
+# Variables for various docker arguments.
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
 TMPFS_MOUNTS := \
@@ -37,10 +44,10 @@ INSTALLER_MOUNTS := \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
-all: clean-containers deploy
+all: clean-containers deploy ## Runs a full deploy of DCOS in containers.
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
-	@echo "Mini DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
+	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
 
 build: $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
@@ -57,42 +64,15 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 
 start: build master agent installer
 
-define start_master
-echo "+ Starting dcos master no. $(1)";
-docker run -dt --privileged \
-	$(TMPFS_MOUNTS) \
-	--name $(MASTER_CTR)$(1)\
-	-e "container=$(MASTER_CTR)$(1)" \
-	--hostname $(MASTER_CTR)$(1) \
-	$(DOCKER_IMAGE);
-sleep 2;
-docker exec $(MASTER_CTR)$(1) systemctl start docker;
-docker exec $(MASTER_CTR)$(1) systemctl start sshd;
-docker exec $(MASTER_CTR)$(1) docker ps -a > /dev/null;
-endef
 master: ## Starts the containers for dcos masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_master,$(NUM)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(TMPFS_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
-define start_agent
-echo "+ Starting dcos agent no. $(1)";
-docker run -dt --privileged \
-	$(TMPFS_MOUNTS) \
-	$(SYSTEMD_MOUNTS) \
-	--name $(AGENT_CTR)$(1)\
-	-e "container=$(AGENT_CTR)$(1)" \
-	--hostname $(AGENT_CTR)$(1) \
-	$(DOCKER_IMAGE);
-sleep 2;
-docker exec $(AGENT_CTR)$(1) systemctl start docker;
-docker exec $(AGENT_CTR)$(1) systemctl start sshd;
-docker exec $(AGENT_CTR)$(1) docker ps -a > /dev/null;
-endef
 agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_agent,$(NUM)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS)))
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
@@ -111,12 +91,6 @@ endif
 	@docker exec $(INSTALLER_CTR) systemctl start docker
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
-define get_master_ips
-$(eval MASTER_IPS := $(MASTER_IPS) $(shell $(IP_CMD) $(MASTER_CTR)$(1)))
-endef
-define get_agent_ips
-$(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
-endef
 ips: start ## Gets the ips for the currently running containers.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
@@ -143,25 +117,63 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
-define remove_container
-docker rm -f $(1)$(2) > /dev/null 2>&1 || true;
-endef
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 || true
 	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
 	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
 
-clean: clean-containers ## Stops all containers and removes all generated files for the cluster.
-	@rm -f $(CURDIR)/genconf/ssh_key
-	@rm -rf $(SSH_DIR)
-	@rm -rf $(SERVICE_DIR)
+clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
 	@sudo systemctl start mesos_executors.slice
 	@sudo rm -f $(MESOS_SLICE)
+
+clean: clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
+	$(RM) $(CURDIR)/genconf/ssh_key
+	$(RM) -r $(SSH_DIR)
+	$(RM) -r $(SERVICE_DIR)
 
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-# helper definitions
+# Define the function to start a master or agent container. This also starts
+# docker and sshd in the resulting container, and makes sure docker started
+# successfully.
+# @param name	  First part of the container name.
+# @param number	  ID of the container.
+# @param mounts	  Specific mounts for the container.
+define start_dcos_container
+echo "+ Starting dcos container: $(1)$(2)";
+docker run -dt --privileged \
+	$(3) \
+	--name $(1)$(2) \
+	-e "container=$(1)$(2)" \
+	--hostname $(1)$(2) \
+	$(DOCKER_IMAGE);
+sleep 2;
+docker exec $(1)$(2) systemctl start docker;
+docker exec $(1)$(2) systemctl start sshd;
+docker exec $(1)$(2) docker ps -a > /dev/null;
+endef
+
+# Define the function to populate the MASTER_IPS variable with the
+# corresponding IPs of the DCOS master containers.
+define get_master_ips
+$(eval MASTER_IPS := $(MASTER_IPS) $(shell $(IP_CMD) $(MASTER_CTR)$(1)))
+endef
+
+# Define the function to populate the AGENT_IPS variable with the
+# corresponding IPs of the DCOS agent containers.
+define get_agent_ips
+$(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
+endef
+
+# Define the function to stop & remove a container.
+# @param name	  First part of the container name.
+# @param number	  ID of the container.
+define remove_container
+docker rm -f $(1)$(2) > /dev/null 2>&1 || true;
+endef
+
+# Helper definitions.
 null :=
 space := ${null} ${null}
 ${space} := ${space}# ${ } is a space.
@@ -170,7 +182,7 @@ define newline
 -
 endef
 
-# define the template for docker.service
+# Define the template for the docker.service systemd unit file.
 define DOCKER_SERVICE_BODY
 [Unit]
 Description=Docker Application Container Engine
@@ -192,7 +204,8 @@ TimeoutStartSec=0
 WantedBy=multi-user.target
 endef
 
-# define the template for genconf/config.yaml
+# Define the template for genconf/config.yaml, this makes sure the correct IPs
+# of the specific containers get populated correctly.
 define CONFIG_BODY
 ---
 agent_list:
