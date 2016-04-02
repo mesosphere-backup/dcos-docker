@@ -6,9 +6,10 @@ Run dcos with systemd and docker in two containers.
 
 2. From this directory run `make`.
 
-> **NOTE**: This defaults to 1 master and 3 agents, you can change the number
-> of agents by setting the variable `AGENTS`, for example `make AGENTS=5` will
-> start 5 agents.
+> **NOTE**: This defaults to 3 masters and 3 agents.
+> You can change the number of masters by setting the variable `MASTERS`.
+> You can change the number of agents by setting the variable `AGENTS`.
+> For example `make MASTER=1 AGENTS=5` will start 1 master and 5 agents.
 
 **Makefile usage:**
 

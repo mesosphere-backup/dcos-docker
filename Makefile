@@ -1,6 +1,8 @@
 .PHONY: all build start master agent installer ips genconf preflight deploy clean clean-containers help
 SHELL := /bin/bash
 
+# set the number of masters
+MASTERS := 3
 # set the number of agents
 AGENTS := 3
 
@@ -36,9 +38,9 @@ INSTALLER_MOUNTS := \
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
 all: clean-containers deploy
-	@echo "Master IP: $(MASTER_IP)"
+	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
-	@echo "Mini DCOS has been started, open http://$(MASTER_IP) in your browser."
+	@echo "Mini DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
 
 build: $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
 	@echo "+ Building the docker image"
@@ -55,17 +57,21 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 
 start: build master agent installer
 
-master: ## Starts the container for a dcos master.
-	@echo "+ Starting dcos master"
-	@docker run -dt --privileged \
-		$(TMPFS_MOUNTS) \
-		--name $(MASTER_CTR) \
-		-e "container=$(MASTER_CTR)" \
-		--hostname $(MASTER_CTR) \
-		$(DOCKER_IMAGE)
-	@docker exec $(MASTER_CTR) systemctl start docker
-	@docker exec $(MASTER_CTR) systemctl start sshd
-	@docker exec $(MASTER_CTR) docker ps -a > /dev/null # just to make sure docker is up
+define start_master
+echo "+ Starting dcos master no. $(1)";
+docker run -dt --privileged \
+	$(TMPFS_MOUNTS) \
+	--name $(MASTER_CTR)$(1)\
+	-e "container=$(MASTER_CTR)$(1)" \
+	--hostname $(MASTER_CTR)$(1) \
+	$(DOCKER_IMAGE);
+sleep 2;
+docker exec $(MASTER_CTR)$(1) systemctl start docker;
+docker exec $(MASTER_CTR)$(1) systemctl start sshd;
+docker exec $(MASTER_CTR)$(1) docker ps -a > /dev/null;
+endef
+master: ## Starts the containers for dcos masters.
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_master,$(NUM)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
@@ -80,11 +86,12 @@ docker run -dt --privileged \
 	-e "container=$(AGENT_CTR)$(1)" \
 	--hostname $(AGENT_CTR)$(1) \
 	$(DOCKER_IMAGE);
+sleep 2;
 docker exec $(AGENT_CTR)$(1) systemctl start docker;
 docker exec $(AGENT_CTR)$(1) systemctl start sshd;
 docker exec $(AGENT_CTR)$(1) docker ps -a > /dev/null;
 endef
-agent: $(MESOS_SLICE) ## Starts the container for a dcos agent.
+agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_agent,$(NUM)))
 
 installer: ## Starts the container for the dcos installer.
@@ -104,11 +111,14 @@ endif
 	@docker exec $(INSTALLER_CTR) systemctl start docker
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
+define get_master_ips
+$(eval MASTER_IPS := $(MASTER_IPS) $(shell $(IP_CMD) $(MASTER_CTR)$(1)))
+endef
 define get_agent_ips
 $(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
 endef
 ips: start ## Gets the ips for the currently running containers.
-	$(eval MASTER_IP := $(shell $(IP_CMD) $(MASTER_CTR)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
@@ -134,11 +144,12 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
 define remove_container
-docker rm -f $(AGENT_CTR)$(1) > /dev/null 2>&1 || true;
+docker rm -f $(1)$(2) > /dev/null 2>&1 || true;
 endef
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
-	@docker rm -f $(MASTER_CTR) $(INSTALLER_CTR) > /dev/null 2>&1 || true
-	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(NUM)))
+	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 || true
+	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
+	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
 
 clean: clean-containers ## Stops all containers and removes all generated files for the cluster.
 	@rm -f $(CURDIR)/genconf/ssh_key
@@ -191,7 +202,7 @@ cluster_name: DCOS
 exhibitor_storage_backend: static
 master_discovery: static
 master_list:
-- ${MASTER_IP}
+- $(subst ${space},${newline} ,$(MASTER_IPS))
 process_timeout: 10000
 resolvers:
 - 8.8.8.8
