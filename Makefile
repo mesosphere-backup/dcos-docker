@@ -159,12 +159,14 @@ endef
 
 # Define the function to populate the MASTER_IPS variable with the
 # corresponding IPs of the DCOS master containers.
+# @param number	  ID of the container.
 define get_master_ips
 $(eval MASTER_IPS := $(MASTER_IPS) $(shell $(IP_CMD) $(MASTER_CTR)$(1)))
 endef
 
 # Define the function to populate the AGENT_IPS variable with the
 # corresponding IPs of the DCOS agent containers.
+# @param number	  ID of the container.
 define get_agent_ips
 $(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
 endef
@@ -179,7 +181,7 @@ endef
 # Helper definitions.
 null :=
 space := ${null} ${null}
-${space} := ${space}# ${ } is a space.
+${space} := ${space} # ${ } is a space.
 define newline
 
 -
@@ -192,9 +194,6 @@ Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
 
 [Service]
-# the default is not to use systemd for cgroups because the delegate issues still
-# exists and systemd currently does not support the cgroup feature set required
-# for containers run by docker
 ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER}
 MountFlags=slave
 LimitNOFILE=1048576
