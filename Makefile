@@ -81,7 +81,6 @@ installer: ## Starts the container for the dcos installer.
 ifeq (,$(wildcard $(DCOS_GENERATE_CONFIG_PATH)))
     $(error $(DCOS_GENERATE_CONFIG_PATH) does not exist, exiting!)
 endif
-	@chmod +x $(DCOS_GENERATE_CONFIG_PATH)
 	@touch $(CONFIG_FILE)
 	@docker run -dt --privileged \
 		$(COMMON_MOUNTS) \
