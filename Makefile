@@ -7,6 +7,10 @@ MASTERS := 1
 # Set the number of DCOS agents.
 AGENTS := 1
 
+# Set the superuser username
+SUPERUSER_USERNAME := admin
+SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
+
 # Variables for the resulting container & image names.
 MASTER_CTR:= dcos-docker-master
 AGENT_CTR := dcos-docker-agent
@@ -130,6 +134,7 @@ clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor
 
 clean: clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
 	$(RM) $(CURDIR)/genconf/ssh_key
+	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SERVICE_DIR)
 
@@ -223,6 +228,6 @@ resolvers:
 - 8.8.4.4
 ssh_port: 22
 ssh_user: root
-superuser_password_hash: $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
-superuser_username: admin
+superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
+superuser_username: $(SUPERUSER_USERNAME)
 endef
