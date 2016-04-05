@@ -124,7 +124,7 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
-	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 || true
+	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
 	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
 	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
 
@@ -179,7 +179,7 @@ endef
 # @param name	  First part of the container name.
 # @param number	  ID of the container.
 define remove_container
-docker rm -f $(1)$(2) > /dev/null 2>&1 || true;
+docker rm -fv $(1)$(2) > /dev/null 2>&1 || true;
 endef
 
 # Helper definitions.
