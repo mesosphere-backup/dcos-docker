@@ -18,6 +18,7 @@ RUN yum install -y \
 	openssh-server \
 	sudo \
 	systemd \
+	tree \
 	unzip \
 	xz \
 	&& ( \
