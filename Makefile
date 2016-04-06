@@ -38,8 +38,7 @@ SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
 # Variables for various docker arguments.
-COMMON_MOUNTS := \
-	-v /home:/home:ro
+MASTER_MOUNTS :=
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
 TMPFS_MOUNTS := \
@@ -71,14 +70,14 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 start: build master agent installer
 
 master: ## Starts the containers for dcos masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(COMMON_MOUNTS) $(TMPFS_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
 agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(COMMON_MOUNTS) $(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS)))
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
@@ -87,7 +86,6 @@ ifeq (,$(wildcard $(DCOS_GENERATE_CONFIG_PATH)))
 endif
 	@touch $(CONFIG_FILE)
 	@docker run -dt --privileged \
-		$(COMMON_MOUNTS) \
 		$(TMPFS_MOUNTS) \
 		$(INSTALLER_MOUNTS) \
 		--name $(INSTALLER_CTR) \
