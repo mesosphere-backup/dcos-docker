@@ -58,7 +58,9 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 COPY genconf /genconf
 COPY include/systemd/docker.service /lib/systemd/system/
 COPY include/ssh /root/.ssh
-RUN cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys
+RUN systemctl enable docker.service \
+	&& systemctl enable sshd.service \
+	&& cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys
 
 # systemd needs a different stop signal
 STOPSIGNAL SIGRTMIN+3

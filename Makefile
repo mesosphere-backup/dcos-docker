@@ -92,7 +92,7 @@ endif
 		-e "container=$(INSTALLER_CTR)" \
 		--hostname $(INSTALLER_CTR) \
 		$(DOCKER_IMAGE)
-	@docker exec $(INSTALLER_CTR) systemctl start docker
+	@sleep 2
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
 ips: start ## Gets the ips for the currently running containers.
@@ -154,8 +154,6 @@ docker run -dt --privileged \
 	--hostname $(1)$(2) \
 	$(DOCKER_IMAGE);
 sleep 2;
-docker exec $(1)$(2) systemctl start docker;
-docker exec $(1)$(2) systemctl start sshd;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
 
@@ -194,6 +192,7 @@ define DOCKER_SERVICE_BODY
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
+After=dbus.service
 
 [Service]
 ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER}
@@ -205,7 +204,7 @@ Delegate=yes
 TimeoutStartSec=0
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
