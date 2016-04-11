@@ -1,4 +1,4 @@
-.PHONY: all build start master agent installer ips genconf preflight deploy clean clean-containers help
+.PHONY: all build start master agent installer ips genconf registry preflight deploy clean clean-containers help
 SHELL := /bin/bash
 
 # Set the number of DCOS masters.
@@ -27,6 +27,11 @@ DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
+CERTS_DIR := $(CURDIR)/include/certs
+ROOTCA_CERT := $(CERTS_DIR)/cacert.pem
+CLIENT_CSR := $(CERTS_DIR)/client.csr
+CLIENT_KEY := $(CERTS_DIR)/client.key
+CLIENT_CERT := $(CERTS_DIR)/client.cert
 
 # Variables for the ssh keys that will be generated for installing DCOS in the
 # containers.
@@ -47,6 +52,8 @@ TMPFS_MOUNTS := \
 INSTALLER_MOUNTS := \
 	-v $(CONFIG_FILE):/genconf/config.yaml \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
+CERT_MOUNTS := \
+	-v $(CERTS_DIR):/etc/docker/certs.d
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
 all: clean-containers deploy ## Runs a full deploy of DCOS in containers.
@@ -67,17 +74,17 @@ $(SSH_KEY): $(SSH_DIR)
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
-start: build master agent installer
+start: build $(CERTS_DIR) master agent installer
 
 master: ## Starts the containers for dcos masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
 agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS)))
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
@@ -108,6 +115,60 @@ $(SERVICE_DIR):
 $(DOCKER_SERVICE_FILE): $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
 	$(file >$@,$(DOCKER_SERVICE_BODY))
 
+$(CERTS_DIR):
+	@mkdir -p $@
+
+$(CERTS_DIR)/openssl-ca.cnf: $(CERTS_DIR)
+	@cp $(CURDIR)/configs/certs/openssl-ca.cnf $@
+
+$(ROOTCA_CERT): $(CERTS_DIR)/openssl-ca.cnf
+	@openssl req -x509 \
+		-config $(CERTS_DIR)/openssl-ca.cnf \
+		-newkey rsa:4096 -sha256 \
+		-subj "/C=US/ST=California/L=San Francisco/O=Mesosphere/CN=DCOS Test CA" \
+		-nodes -out $@ -outform PEM
+	@openssl x509 -noout -text -in $@
+
+$(CERTS_DIR)/openssl-server.cnf: $(CERTS_DIR)
+	@cp $(CURDIR)/configs/certs/openssl-server.cnf $@
+	@echo "IP.1 = $(firstword $(MASTER_IPS))" >> $@
+
+$(CLIENT_CSR): ips $(CERTS_DIR)/openssl-server.cnf
+	@openssl req \
+		-config $(CERTS_DIR)/openssl-server.cnf \
+		-newkey rsa:2048 -sha256 \
+		-subj "/C=US/ST=California/L=San Francisco/O=Mesosphere/CN=$(firstword $(MASTER_IPS))" \
+		-nodes -out $@ -outform PEM
+	@openssl req -text -noout -verify -in $@
+
+$(CERTS_DIR)/index.txt: $(CERTS_DIR)
+	@touch $@
+
+$(CERTS_DIR)/serial.txt: $(CERTS_DIR)
+	@echo '01' > $@
+
+$(CLIENT_CERT): $(ROOTCA_CERT) $(CLIENT_CSR) $(CERTS_DIR)/index.txt $(CERTS_DIR)/serial.txt
+	@openssl ca -batch \
+		-config $(CERTS_DIR)/openssl-ca.cnf \
+		-policy signing_policy -extensions signing_req \
+		-out $@ -infiles $(CLIENT_CSR)
+	@openssl x509 -noout -text -in $@
+
+registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos master.
+	@docker exec -it $(MASTER_CTR)1 \
+		docker run \
+		-d --restart=always \
+		-p 5000:5000 \
+		-v /etc/docker/certs.d:/certs \
+		-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/client.cert \
+  		-e REGISTRY_HTTP_TLS_KEY=/certs/client.key \
+  		registry:2
+	@$(eval REGISTRY_IP := $(firstword $(MASTER_IPS)):5000)
+	mkdir -p $(CERTS_DIR)/$(REGISTRY_IP)
+	cp $(CLIENT_CERT) $(CERTS_DIR)/$(REGISTRY_IP)/
+	cp $(CLIENT_KEY) $(CERTS_DIR)/$(REGISTRY_IP)/
+	cp $(ROOTCA_CERT) $(CERTS_DIR)/$(REGISTRY_IP)/$(REGISTRY_IP).crt
+
 genconf: $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --genconf --offline -v
@@ -116,7 +177,7 @@ preflight: genconf ## Run the dcos installer with --preflight.
 	@echo "+ Running preflight"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --preflight --offline -v
 
-deploy: preflight ## Run the dcos installer with --deploy.
+deploy: preflight registry ## Run the dcos installer with --deploy.
 	@echo "+ Running deploy"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
@@ -135,6 +196,7 @@ clean: clean-containers clean-slice ## Stops all containers and removes all gene
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SERVICE_DIR)
+	$(RM) -r $(CERTS_DIR)
 
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

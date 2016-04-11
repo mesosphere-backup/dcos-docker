@@ -4,3 +4,5 @@ start.sh
 README.md
 dcos_generate_config*.sh
 examples
+configs
+genconf/config.yaml
