@@ -47,6 +47,7 @@ ENV LANG en_US.UTF-8
 # install dind and docker
 RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/hack/dind" -o /usr/local/bin/dind \
 	&& curl -sSL "https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSION}" -o /usr/bin/docker \
+	&& curl -sSL "https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker" -o /etc/bash_completion.d/docker \
 	&& chmod +x /usr/bin/docker \
 	&& chmod +x /usr/local/bin/dind \
 	&& groupadd -r nogroup \
@@ -55,15 +56,16 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 	&& rm -f /etc/securetty \
 	&& ln -vf /bin/true /usr/sbin/modprobe
 
-COPY genconf /genconf
-COPY include/systemd/docker.service /lib/systemd/system/
-COPY include/ssh /root/.ssh
-RUN systemctl enable docker.service \
-	&& systemctl enable sshd.service \
-	&& cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys
-
 # systemd needs a different stop signal
 STOPSIGNAL SIGRTMIN+3
+
+COPY include/systemd/docker.service /lib/systemd/system/
+RUN systemctl enable docker.service \
+	&& systemctl enable sshd.service
+
+COPY genconf /genconf
+COPY include/ssh /root/.ssh
+RUN cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys
 
 ENTRYPOINT ["dind"]
 CMD ["/sbin/init"]

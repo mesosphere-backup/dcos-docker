@@ -27,11 +27,14 @@ DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
+
+# Variables for the certs for a registry on the first master node.
 CERTS_DIR := $(CURDIR)/include/certs
 ROOTCA_CERT := $(CERTS_DIR)/cacert.pem
 CLIENT_CSR := $(CERTS_DIR)/client.csr
 CLIENT_KEY := $(CERTS_DIR)/client.key
 CLIENT_CERT := $(CERTS_DIR)/client.cert
+REGISTRY_HOST := registry.local
 
 # Variables for the ssh keys that will be generated for installing DCOS in the
 # containers.
@@ -102,7 +105,7 @@ endif
 	@sleep 2
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
-ips: start ## Gets the ips for the currently running containers.
+ips: ## Gets the ips for the currently running containers.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 
@@ -131,13 +134,14 @@ $(ROOTCA_CERT): $(CERTS_DIR)/openssl-ca.cnf
 
 $(CERTS_DIR)/openssl-server.cnf: $(CERTS_DIR)
 	@cp $(CURDIR)/configs/certs/openssl-server.cnf $@
+	@echo "DNS.1 = $(REGISTRY_HOST)" >> $@
 	@echo "IP.1 = $(firstword $(MASTER_IPS))" >> $@
 
 $(CLIENT_CSR): ips $(CERTS_DIR)/openssl-server.cnf
 	@openssl req \
 		-config $(CERTS_DIR)/openssl-server.cnf \
 		-newkey rsa:2048 -sha256 \
-		-subj "/C=US/ST=California/L=San Francisco/O=Mesosphere/CN=$(firstword $(MASTER_IPS))" \
+		-subj "/C=US/ST=California/L=San Francisco/O=Mesosphere/CN=$(REGISTRY_HOST)" \
 		-nodes -out $@ -outform PEM
 	@openssl req -text -noout -verify -in $@
 
@@ -162,14 +166,16 @@ registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos mast
 		-v /etc/docker/certs.d:/certs \
 		-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/client.cert \
   		-e REGISTRY_HTTP_TLS_KEY=/certs/client.key \
+		--name registry \
   		registry:2
 	@$(eval REGISTRY_IP := $(firstword $(MASTER_IPS)):5000)
-	mkdir -p $(CERTS_DIR)/$(REGISTRY_IP)
-	cp $(CLIENT_CERT) $(CERTS_DIR)/$(REGISTRY_IP)/
-	cp $(CLIENT_KEY) $(CERTS_DIR)/$(REGISTRY_IP)/
-	cp $(ROOTCA_CERT) $(CERTS_DIR)/$(REGISTRY_IP)/$(REGISTRY_IP).crt
+	@$(call copy_registry_certs,$(REGISTRY_IP))
+	@$(call copy_registry_certs,$(REGISTRY_HOST):5000)
+	@echo "Your registry is reachable from inside the DCOS containers at:"
+	@echo -e "\t$(REGISTRY_HOST):5000"
+	@echo -e "\t$(REGISTRY_IP)"
 
-genconf: $(CONFIG_FILE) ## Run the dcos installer with --genconf.
+genconf: start $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --genconf --offline -v
 
@@ -177,7 +183,7 @@ preflight: genconf ## Run the dcos installer with --preflight.
 	@echo "+ Running preflight"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --preflight --offline -v
 
-deploy: preflight registry ## Run the dcos installer with --deploy.
+deploy: preflight ## Run the dcos installer with --deploy.
 	@echo "+ Running deploy"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
@@ -214,6 +220,7 @@ docker run -dt --privileged \
 	--name $(1)$(2) \
 	-e "container=$(1)$(2)" \
 	--hostname $(1)$(2) \
+	--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
 	$(DOCKER_IMAGE);
 sleep 2;
 docker exec $(1)$(2) docker ps -a > /dev/null;
@@ -238,6 +245,16 @@ endef
 # @param number	  ID of the container.
 define remove_container
 docker rm -fv $(1)$(2) > /dev/null 2>&1 || true;
+endef
+
+# Define the function for moving the generated certs to the location for the IP
+# or hostname for the registry.
+# @param host	  Host or IP for the cert to be stored by.
+define copy_registry_certs
+mkdir -p $(CERTS_DIR)/$(1)
+cp $(CLIENT_CERT) $(CERTS_DIR)/$(1)/
+cp $(CLIENT_KEY) $(CERTS_DIR)/$(1)/
+cp $(ROOTCA_CERT) $(CERTS_DIR)/$(1)/$(1).crt
 endef
 
 # Helper definitions.

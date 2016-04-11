@@ -44,4 +44,3 @@ nsComment               = "OpenSSL Generated Certificate"
 ####################################################################
 [ alternate_names ]
 
-DNS.1       = registry.local
