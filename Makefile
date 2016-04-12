@@ -1,27 +1,13 @@
-.PHONY: all build start master agent installer ips genconf registry preflight deploy clean clean-containers help
-SHELL := /bin/bash
+.DEFAULT_GOAL := all
+include common.mk
+
+.PHONY: all build start master agent installer genconf registry preflight deploy clean clean-containers help
 
 # Set the number of DCOS masters.
 MASTERS := 1
 
 # Set the number of DCOS agents.
 AGENTS := 1
-
-# Set the superuser username
-SUPERUSER_USERNAME := admin
-SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
-
-# Variables for the resulting container & image names.
-MASTER_CTR:= dcos-docker-master
-AGENT_CTR := dcos-docker-agent
-INSTALLER_CTR := dcos-docker-installer
-DOCKER_IMAGE := mesosphere/dcos-docker
-
-# Variable to set the correct Docker graphdriver to the currently running
-# graphdriver. This makes docker in docker work more efficiently.
-DOCKER_GRAPHDRIVER := $(if $(DOCKER_GRAPHDRIVER),$(DOCKER_GRAPHDRIVER),$(shell docker info | grep "Storage Driver" | sed 's/.*: //'))
-
-DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 
 # Variables for the files that get generated with the correct configurations.
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
@@ -34,7 +20,6 @@ ROOTCA_CERT := $(CERTS_DIR)/cacert.pem
 CLIENT_CSR := $(CERTS_DIR)/client.csr
 CLIENT_KEY := $(CERTS_DIR)/client.key
 CLIENT_CERT := $(CERTS_DIR)/client.cert
-REGISTRY_HOST := registry.local
 
 # Variables for the ssh keys that will be generated for installing DCOS in the
 # containers.
@@ -107,10 +92,6 @@ endif
 		$(DOCKER_IMAGE)
 	@sleep 2
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
-
-ips: ## Gets the ips for the currently running containers.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
 	$(file >$@,$(CONFIG_BODY))
@@ -191,28 +172,6 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
-integration-tests: clean all registry info ## Run the dcos-image integration tests on a dcos-docker instance.
-	@$(eval DCOS_IMAGE_REPO_PATH := $(shell cat $(CURDIR)/.path/dcos-image))
-	@docker build --rm --force-rm -t mesosphere/pytest $(DCOS_IMAGE_REPO_PATH)/test_util/docker/py.test/
-	@docker build --rm --force-rm -t $(REGISTRY_HOST):5000/test_server $(DCOS_IMAGE_REPO_PATH)/test_util/docker/test_server/
-	@docker save $(REGISTRY_HOST):5000/test_server | docker exec -i $(MASTER_CTR)1 docker load
-	@docker exec -it $(MASTER_CTR)1 docker push $(REGISTRY_HOST):5000/test_server
-	docker run --rm -it \
-		-v $(DCOS_IMAGE_REPO_PATH)/test_util/integration_test.py:/integration_test.py \
-		-e DCOS_DNS_ADDRESS=http://$(firstword $(MASTER_IPS)) \
-		-e MASTER_HOSTS=$(subst ${space},${comma},$(MASTER_IPS)) \
-		-e PUBLIC_MASTER_HOSTS=$(subst ${space},${comma},$(MASTER_IPS)) \
-		-e SLAVE_HOSTS=$(subst ${space},${comma},$(AGENT_IPS)) \
-		-e DNS_SEARCH=false \
-		-e DCOS_VARIANT=ee \
-		--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
-		-e REGISTRY_HOST=$(REGISTRY_HOST) \
-		-e AWS_ACCESS_KEY_ID="" \
-		-e AWS_SECRET_ACCESS_KEY="" \
-		-e AWS_REGION=us-west-2 \
-		mesosphere/pytest \
-		py.test -vv -s -m "not minuteman" /integration_test.py
-
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
 	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
@@ -228,9 +187,6 @@ clean: clean-containers clean-slice ## Stops all containers and removes all gene
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SERVICE_DIR)
 	$(RM) -r $(CERTS_DIR)
-
-help: ## Generate the Makefile help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
@@ -251,27 +207,6 @@ sleep 2;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
 
-# Define the function to populate the MASTER_IPS variable with the
-# corresponding IPs of the DCOS master containers.
-# @param number	  ID of the container.
-define get_master_ips
-$(eval MASTER_IPS := $(MASTER_IPS) $(shell $(IP_CMD) $(MASTER_CTR)$(1)))
-endef
-
-# Define the function to populate the AGENT_IPS variable with the
-# corresponding IPs of the DCOS agent containers.
-# @param number	  ID of the container.
-define get_agent_ips
-$(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
-endef
-
-# Define the function to stop & remove a container.
-# @param name	  First part of the container name.
-# @param number	  ID of the container.
-define remove_container
-docker rm -fv $(1)$(2) > /dev/null 2>&1 || true;
-endef
-
 # Define the function for moving the generated certs to the location for the IP
 # or hostname for the registry.
 # @param host	  Host or IP for the cert to be stored by.
@@ -280,16 +215,6 @@ mkdir -p $(CERTS_DIR)/$(1)
 cp $(CLIENT_CERT) $(CERTS_DIR)/$(1)/
 cp $(CLIENT_KEY) $(CERTS_DIR)/$(1)/
 cp $(ROOTCA_CERT) $(CERTS_DIR)/$(1)/$(1).crt
-endef
-
-# Helper definitions.
-null :=
-space := ${null} ${null}
-${space} := ${space} # ${ } is a space.
-comma := ,
-define newline
-
--
 endef
 
 # Define the template for the docker.service systemd unit file.
