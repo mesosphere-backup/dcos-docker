@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build start master agent installer genconf registry preflight deploy clean clean-containers help
+.PHONY: all build start master agent installer genconf registry preflight deploy clean clean-containers
 
 # Set the number of DCOS masters.
 MASTERS := 1
