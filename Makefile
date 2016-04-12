@@ -57,9 +57,12 @@ INSTALLER_MOUNTS := \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
+
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
-all: clean-containers deploy ## Runs a full deploy of DCOS in containers.
+all: clean-containers deploy info ## Runs a full deploy of DCOS in containers.
+
+info:
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
@@ -186,7 +189,29 @@ preflight: genconf ## Run the dcos installer with --preflight.
 deploy: preflight ## Run the dcos installer with --deploy.
 	@echo "+ Running deploy"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
-	@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+
+integration-tests: clean all registry info ## Run the dcos-image integration tests on a dcos-docker instance.
+	@$(eval DCOS_IMAGE_REPO_PATH := $(shell cat $(CURDIR)/.path/dcos-image))
+	@docker build --rm --force-rm -t mesosphere/pytest $(DCOS_IMAGE_REPO_PATH)/test_util/docker/py.test/
+	@docker build --rm --force-rm -t $(REGISTRY_HOST):5000/test_server $(DCOS_IMAGE_REPO_PATH)/test_util/docker/test_server/
+	@docker save $(REGISTRY_HOST):5000/test_server | docker exec -i $(MASTER_CTR)1 docker load
+	@docker exec -it $(MASTER_CTR)1 docker push $(REGISTRY_HOST):5000/test_server
+	docker run --rm -it \
+		-v $(DCOS_IMAGE_REPO_PATH)/test_util/integration_test.py:/integration_test.py \
+		-e DCOS_DNS_ADDRESS=http://$(firstword $(MASTER_IPS)) \
+		-e MASTER_HOSTS=$(subst ${space},${comma},$(MASTER_IPS)) \
+		-e PUBLIC_MASTER_HOSTS=$(subst ${space},${comma},$(MASTER_IPS)) \
+		-e SLAVE_HOSTS=$(subst ${space},${comma},$(AGENT_IPS)) \
+		-e DNS_SEARCH=false \
+		-e DCOS_VARIANT=ee \
+		--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
+		-e REGISTRY_HOST=$(REGISTRY_HOST) \
+		-e AWS_ACCESS_KEY_ID="" \
+		-e AWS_SECRET_ACCESS_KEY="" \
+		-e AWS_REGION=us-west-2 \
+		mesosphere/pytest \
+		py.test -vv -s -m "not minuteman" /integration_test.py
 
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
@@ -261,6 +286,7 @@ endef
 null :=
 space := ${null} ${null}
 ${space} := ${space} # ${ } is a space.
+comma := ,
 define newline
 
 -
