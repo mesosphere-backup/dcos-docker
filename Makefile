@@ -43,8 +43,6 @@ INSTALLER_MOUNTS := \
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 
-IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
-
 all: clean-containers deploy info ## Runs a full deploy of DCOS in containers.
 
 info:
