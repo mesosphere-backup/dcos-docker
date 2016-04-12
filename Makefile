@@ -1,13 +1,17 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build start master agent installer genconf registry preflight deploy clean clean-containers
+.PHONY: all build build-all start master agent installer genconf generate registry preflight deploy clean clean-containers
 
 # Set the number of DCOS masters.
 MASTERS := 1
 
 # Set the number of DCOS agents.
 AGENTS := 1
+
+# Distro to test against
+DISTRO := centos-7
+MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 
 # Variables for the files that get generated with the correct configurations.
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
@@ -51,8 +55,17 @@ info:
 	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
 
 build: $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
-	@echo "+ Building the docker image"
+	@echo "+ Building the $(DISTRO) base image"
+	@$(foreach distro,$(wildcard distros/$(DISTRO)*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
+	@echo "+ Building the dcos-docker image"
+	@docker tag $(DOCKER_IMAGE):$(DISTRO) $(DOCKER_IMAGE):base
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
+
+build-all: generate ## Build the Dockerfiles for all the various distros.
+	@$(foreach distro,$(wildcard distros/*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
+
+generate: ## generate the Dockerfiles for all the distros.
+	@$(CURDIR)/distros/generate.sh
 
 $(SSH_DIR):
 	@mkdir -p $@
@@ -213,6 +226,13 @@ mkdir -p $(CERTS_DIR)/$(1)
 cp $(CLIENT_CERT) $(CERTS_DIR)/$(1)/
 cp $(CLIENT_KEY) $(CERTS_DIR)/$(1)/
 cp $(ROOTCA_CERT) $(CERTS_DIR)/$(1)/$(1).crt
+endef
+
+# Define the function for building a distro's Dockerfile.
+# @param distro	  Distro to build the Dockerfile for.
+define build_distro_image
+docker build --rm --force-rm -t $(DOCKER_IMAGE):$(1) distros/$(1)/;
+docker tag  $(DOCKER_IMAGE):$(1) $(DOCKER_IMAGE):$(firstword $(subst -, ,$(1)));
 endef
 
 # Define the template for the docker.service systemd unit file.

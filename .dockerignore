@@ -6,3 +6,4 @@ dcos_generate_config*.sh
 examples
 configs
 genconf/config.yaml
+distros
