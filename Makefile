@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build build-all start master agent installer genconf generate registry preflight deploy clean clean-containers
+.PHONY: all build build-all start master agent installer genconf registry preflight deploy clean clean-containers
 
 # Set the number of DCOS masters.
 MASTERS := 1
@@ -54,17 +54,18 @@ info:
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
 
-build: $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
+build: generate $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
 	@echo "+ Building the $(DISTRO) base image"
 	@$(foreach distro,$(wildcard distros/$(DISTRO)*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
 	@echo "+ Building the dcos-docker image"
 	@docker tag $(DOCKER_IMAGE):$(DISTRO) $(DOCKER_IMAGE):base
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
+
 build-all: generate ## Build the Dockerfiles for all the various distros.
 	@$(foreach distro,$(wildcard distros/*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
 
-generate: ## generate the Dockerfiles for all the distros.
+generate: $(CURDIR)/distros ## generate the Dockerfiles for all the distros.
 	@$(CURDIR)/distros/generate.sh
 
 $(SSH_DIR):

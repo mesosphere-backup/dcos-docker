@@ -11,7 +11,7 @@ RUN curl -sSL "https://raw.githubusercontent.com/docker/docker/${DIND_COMMIT}/ha
 	&& curl -sSL "https://raw.githubusercontent.com/docker/docker/master/contrib/completion/bash/docker" -o /etc/bash_completion.d/docker \
 	&& chmod +x /usr/bin/docker \
 	&& chmod +x /usr/local/bin/dind \
-	&& groupadd -r nogroup \
+	&& groupadd -r nogroup || true \
 	&& groupadd -r docker \
 	&& gpasswd -a "root" docker \
 	&& rm -f /etc/securetty \
@@ -22,7 +22,8 @@ STOPSIGNAL SIGRTMIN+3
 
 COPY include/systemd/docker.service /lib/systemd/system/
 RUN systemctl enable docker.service \
-	&& systemctl enable sshd.service
+	&& systemctl enable sshd.service || true \
+	&& systemctl enable ssh.service || true
 
 COPY genconf /genconf
 COPY include/ssh /root/.ssh
