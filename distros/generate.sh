@@ -21,6 +21,9 @@ for version in "${versions[@]}"; do
 	distro="${version%-*}"
 	suite="${version##*-}"
 	from="${distro}:${suite}"
+	if [[ "$distro" == "coreos" ]]; then
+		from="jess/coreos"
+	fi
 
 	mkdir -p "$version"
 	echo "$version -> FROM $from"
@@ -71,7 +74,8 @@ for version in "${versions[@]}"; do
 			packages=( "${packages[@]/vim-nox/vim-minimal}" )
 			packages=( "${packages[@]/xz-utils/xz}" )
 			;;
-		*) packages+=( gawk );; ## needs GNU awk
+		debian|ubuntu) packages+=( gawk );; ## needs GNU awk
+		*) ;;
 	esac
 
 	if [[ "$distro" == "fedora" ]]; then
@@ -85,28 +89,31 @@ for version in "${versions[@]}"; do
 		fedora)
 			echo "RUN dnf install -y ${packages[*]} \\" >> "$version/Dockerfile"
 			;;
-		*)
+		debian|ubuntu)
 			echo "RUN apt-get update && apt-get install -y ${packages[*]} --no-install-recommends && rm -rf /var/lib/apt/lists/* \\" >> "$version/Dockerfile"
 			;;
+		*) ;;
 	esac
 
-	cat >> "$version/Dockerfile" <<-'EOF'
-	&& ( \
-		cd /lib/systemd/system/sysinit.target.wants/; \
-		for i in *; do \
-			if [ "$i" != "systemd-tmpfiles-setup.service" ]; then \
-				rm -f $i; \
-			fi \
-		done \
-		) \
-		&& rm -f /lib/systemd/system/multi-user.target.wants/* \
-		&& rm -f /etc/systemd/system/*.wants/* \
-		&& rm -f /lib/systemd/system/local-fs.target.wants/* \
-		&& rm -f /lib/systemd/system/sockets.target.wants/*udev* \
-		&& rm -f /lib/systemd/system/sockets.target.wants/*initctl* \
-		&& rm -f /lib/systemd/system/anaconda.target.wants/* \
-		&& rm -f /lib/systemd/system/basic.target.wants/* \
-		&& rm -f /lib/systemd/system/graphical.target.wants/* \
-		&& ln -vf /lib/systemd/system/multi-user.target /lib/systemd/system/default.target
-	EOF
+	if [[ "$distro" != "coreos" ]]; then
+		cat >> "$version/Dockerfile" <<-'EOF'
+		&& ( \
+			cd /lib/systemd/system/sysinit.target.wants/; \
+			for i in *; do \
+				if [ "$i" != "systemd-tmpfiles-setup.service" ]; then \
+					rm -f $i; \
+				fi \
+			done \
+			) \
+			&& rm -f /lib/systemd/system/multi-user.target.wants/* \
+			&& rm -f /etc/systemd/system/*.wants/* \
+			&& rm -f /lib/systemd/system/local-fs.target.wants/* \
+			&& rm -f /lib/systemd/system/sockets.target.wants/*udev* \
+			&& rm -f /lib/systemd/system/sockets.target.wants/*initctl* \
+			&& rm -f /lib/systemd/system/anaconda.target.wants/* \
+			&& rm -f /lib/systemd/system/basic.target.wants/* \
+			&& rm -f /lib/systemd/system/graphical.target.wants/* \
+			&& ln -vf /lib/systemd/system/multi-user.target /lib/systemd/system/default.target
+		EOF
+	fi
 done
