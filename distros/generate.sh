@@ -42,6 +42,7 @@ for version in "${versions[@]}"; do
 	curl ca-certificates # for downloading Go
 	git # for "git commit" info in "docker -v"
 	iproute ipset iptables # for ip, iptables commands
+	iputils-ping # ping
 	libcgroup-dev # for cgroup support
 	net-tools
 	openssh-client openssh-server # for doing installs via ssh
@@ -65,6 +66,7 @@ for version in "${versions[@]}"; do
 		centos|fedora|rhel)
 			packages=( "${packages[@]/aufs-tools/}" )
 			packages=( "${packages[@]/btrfs-tools/btrfs-progs}" )
+			packages=( "${packages[@]/iputils-ping/iputils}" )
 			packages=( "${packages[@]/libcgroup-dev/libcgroup}" )
 			packages=( "${packages[@]/vim-nox/vim-minimal}" )
 			packages=( "${packages[@]/xz-utils/xz}" )

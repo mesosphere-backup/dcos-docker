@@ -4,7 +4,7 @@
 
 FROM centos:7
 
-RUN yum install -y  bash-completion btrfs-progs curl ca-certificates git iproute ipset iptables libcgroup net-tools openssh-client openssh-server sudo systemd tar tree unzip vim-minimal xz libselinux-utils \
+RUN yum install -y  bash-completion btrfs-progs curl ca-certificates git iproute ipset iptables iputils libcgroup net-tools openssh-client openssh-server sudo systemd tar tree unzip vim-minimal xz libselinux-utils \
 && ( \
 cd /lib/systemd/system/sysinit.target.wants/; \
 for i in *; do \
