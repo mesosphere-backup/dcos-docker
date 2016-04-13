@@ -12,7 +12,8 @@ RUN curl -sSL "https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSIO
 	&& groupadd -r docker || true \
 	&& gpasswd -a "root" docker || true \
 	&& rm -f /etc/securetty \
-	&& ln -vf /bin/true /usr/sbin/modprobe
+	&& ln -vf /bin/true /usr/sbin/modprobe \
+	&& ln -vf /bin/true /sbin/modprobe
 
 # systemd needs a different stop signal
 STOPSIGNAL SIGRTMIN+3
