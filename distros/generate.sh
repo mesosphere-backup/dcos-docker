@@ -71,7 +71,7 @@ for version in "${versions[@]}"; do
 			packages=( "${packages[@]/vim-nox/vim-minimal}" )
 			packages=( "${packages[@]/xz-utils/xz}" )
 			;;
-		*) ;;
+		*) packages+=( gawk );; ## needs GNU awk
 	esac
 
 	if [[ "$distro" == "fedora" ]]; then
