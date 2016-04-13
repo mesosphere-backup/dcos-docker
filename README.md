@@ -2,14 +2,11 @@
 
 Run dcos with systemd and docker in two containers.
 
+## Quick Start
+
 1. Put a `dcos_generate_config.sh` in the root of this directory.
 
 2. From this directory run `make`.
-
-> **NOTE**: This defaults to 1 master and 1 agent.
-> You can change the number of masters by setting the variable `MASTERS`.
-> You can change the number of agents by setting the variable `AGENTS`.
-> For example `make MASTERS=3 AGENTS=5` will start 3 masters and 5 agents.
 
 **Makefile usage:**
 
@@ -34,3 +31,28 @@ registry                       Start a docker registry with certs in the mesos m
 ### Requirements
 
 - A Linux machine with systemd and docker installed.
+
+
+### Settings
+
+#### Changing the number of agents &/or masters
+
+This defaults to 1 master and 1 agent. You can change the number of masters by
+setting the variable `MASTERS`. You can change the number of agents by setting
+the variable `AGENTS`. For example:
+
+```console
+$ make MASTERS=3 AGENTS=5
+# start a cluster with 3 masters and 5 agents
+```
+
+#### Changing the distro
+
+By default the cluster will be spun up using a centos base image but if you
+want to test something else you can run:
+
+```console
+$ make DISTRO=ubuntu
+$ make DISTRO=debian
+$ make DISTRO=fedora
+```
