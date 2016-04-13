@@ -47,6 +47,7 @@ for version in "${versions[@]}"; do
 	openssh-client openssh-server # for doing installs via ssh
 	sudo
 	systemd
+	tar
 	tree
 	unzip
 	vim-nox # editor for dev purposes
