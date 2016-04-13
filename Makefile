@@ -103,6 +103,7 @@ endif
 		--hostname $(INSTALLER_CTR) \
 		$(DOCKER_IMAGE)
 	@sleep 2
+	@docker exec $(INSTALLER_CTR) systemctl start sshd.service # start sshd
 	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
@@ -216,6 +217,7 @@ docker run -dt --privileged \
 	--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
 	$(DOCKER_IMAGE);
 sleep 2;
+docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
 

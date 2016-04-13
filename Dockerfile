@@ -22,8 +22,7 @@ STOPSIGNAL SIGRTMIN+3
 
 COPY include/systemd/docker.service /lib/systemd/system/
 RUN systemctl enable docker.service \
-	&& systemctl enable sshd.service || true \
-	&& systemctl enable ssh.service || true
+	&& systemctl enable sshd.service || true
 
 COPY genconf /genconf
 COPY include/ssh /root/.ssh
