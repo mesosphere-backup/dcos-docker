@@ -47,9 +47,9 @@ INSTALLER_MOUNTS := \
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 
-all: clean-containers deploy info ## Runs a full deploy of DCOS in containers.
+all: deploy info ## Runs a full deploy of DCOS in containers.
 
-info:
+info: ips
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
@@ -77,7 +77,7 @@ $(SSH_KEY): $(SSH_DIR)
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
-start: build $(CERTS_DIR) master agent installer
+start: build $(CERTS_DIR) clean-containers master agent installer
 
 master: ## Starts the containers for dcos masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS)))
