@@ -47,6 +47,7 @@ for version in "${versions[@]}"; do
 	iproute ipset iptables # for ip, iptables commands
 	iputils-ping # ping
 	libcgroup-dev # for cgroup support
+	libpopt0 # needed by logrotate binary
 	net-tools
 	openssh-client openssh-server # for doing installs via ssh
 	sudo
@@ -71,6 +72,7 @@ for version in "${versions[@]}"; do
 			packages=( "${packages[@]/btrfs-tools/btrfs-progs}" )
 			packages=( "${packages[@]/iputils-ping/iputils}" )
 			packages=( "${packages[@]/libcgroup-dev/libcgroup}" )
+			packages=( "${packages[@]/libpopt0/}" )
 			packages=( "${packages[@]/vim-nox/vim-minimal}" )
 			packages=( "${packages[@]/xz-utils/xz}" )
 			;;
