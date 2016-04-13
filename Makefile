@@ -219,7 +219,7 @@ docker run -dt --privileged \
 sleep 2;
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
-docker exec $(1)$(2) ln -snf /opt/mesosphere/bin/curl /usr/bin/curl
+docker exec $(1)$(2) ln -snf /opt/mesosphere/bin/curl /usr/bin/curl;
 endef
 
 # Define the function for moving the generated certs to the location for the IP
