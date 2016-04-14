@@ -7,3 +7,4 @@ examples
 configs
 genconf/config.yaml
 distros
+genconf/serve/
