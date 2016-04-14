@@ -29,6 +29,7 @@ master                         Starts the containers for dcos masters.
 open-browser                   Opens your browser to the master ip.
 preflight                      Run the dcos installer with --preflight.
 registry                       Start a docker registry with certs in the mesos master.
+web                            Run the dcos installer with --web.
 ```
 
 ### Requirements

@@ -190,6 +190,11 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
+web: preflight ## Run the dcos installer with --web.
+	@echo "+ Running web"
+	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --web --offline -v
+	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+
 clean-certs: ## Remove all the certs generated for the registry.
 	$(RM) -r $(CERTS_DIR)
 
