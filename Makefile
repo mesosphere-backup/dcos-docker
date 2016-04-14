@@ -81,7 +81,7 @@ $(SSH_KEY): $(SSH_DIR)
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
-start: build $(CERTS_DIR) clean-containers master agent installer
+start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
 master: ## Starts the containers for dcos masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS)))
@@ -160,7 +160,7 @@ $(CLIENT_CERT): $(ROOTCA_CERT) $(CLIENT_CSR) $(CERTS_DIR)/index.txt $(CERTS_DIR)
 		-out $@ -infiles $(CLIENT_CSR)
 	@openssl x509 -noout -text -in $@
 
-registry: clean-certs $(CLIENT_CERT) ## Start a docker registry with certs in the mesos master.
+registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos master.
 	@docker exec -it $(MASTER_CTR)1 \
 		docker run \
 		-d --restart=always \
