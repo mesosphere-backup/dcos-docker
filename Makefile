@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build build-all start master agent installer genconf registry preflight deploy clean clean-containers
+.PHONY: all build build-all start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
 
 # Set the number of DCOS masters.
 MASTERS := 1
@@ -16,6 +16,7 @@ MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 # Variables for the files that get generated with the correct configurations.
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
+
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
 # Variables for the certs for a registry on the first master node.
@@ -49,10 +50,13 @@ CERT_MOUNTS := \
 
 all: deploy info ## Runs a full deploy of DCOS in containers.
 
-info: ips
+info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
+
+open-browser: ips ## Opens your browser to the master ip.
+	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
 
 build: generate $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
 	@echo "+ Building the $(DISTRO) base image"
@@ -91,9 +95,10 @@ agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
-ifeq (,$(wildcard $(DCOS_GENERATE_CONFIG_PATH)))
-    $(error $(DCOS_GENERATE_CONFIG_PATH) does not exist, exiting!)
-endif
+	@if [[ ! -f "$(DCOS_GENERATE_CONFIG_PATH)" ]]; then \
+		>&2 echo "$(DCOS_GENERATE_CONFIG_PATH) does not exist, exiting!"; \
+		exit 1; \
+	fi
 	@touch $(CONFIG_FILE)
 	@docker run -dt --privileged \
 		$(TMPFS_MOUNTS) \
@@ -155,7 +160,7 @@ $(CLIENT_CERT): $(ROOTCA_CERT) $(CLIENT_CSR) $(CERTS_DIR)/index.txt $(CERTS_DIR)
 		-out $@ -infiles $(CLIENT_CSR)
 	@openssl x509 -noout -text -in $@
 
-registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos master.
+registry: clean-certs $(CLIENT_CERT) ## Start a docker registry with certs in the mesos master.
 	@docker exec -it $(MASTER_CTR)1 \
 		docker run \
 		-d --restart=always \
@@ -185,6 +190,9 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
 	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
+clean-certs: ## Remove all the certs generated for the registry.
+	$(RM) -r $(CERTS_DIR)
+
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
 	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
@@ -194,12 +202,11 @@ clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor
 	@sudo systemctl start mesos_executors.slice
 	@sudo rm -f $(MESOS_SLICE)
 
-clean: clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
+clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
 	$(RM) $(CURDIR)/genconf/ssh_key
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SERVICE_DIR)
-	$(RM) -r $(CERTS_DIR)
 
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
@@ -225,10 +232,10 @@ endef
 # or hostname for the registry.
 # @param host	  Host or IP for the cert to be stored by.
 define copy_registry_certs
-mkdir -p $(CERTS_DIR)/$(1)
-cp $(CLIENT_CERT) $(CERTS_DIR)/$(1)/
-cp $(CLIENT_KEY) $(CERTS_DIR)/$(1)/
-cp $(ROOTCA_CERT) $(CERTS_DIR)/$(1)/$(1).crt
+mkdir -p $(CERTS_DIR)/$(1);
+cp $(CLIENT_CERT) $(CERTS_DIR)/$(1)/;
+cp $(CLIENT_KEY) $(CERTS_DIR)/$(1)/;
+cp $(ROOTCA_CERT) $(CERTS_DIR)/$(1)/$(1).crt;
 endef
 
 # Define the function for building a distro's Dockerfile.

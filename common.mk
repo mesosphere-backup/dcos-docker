@@ -22,12 +22,24 @@ REGISTRY_HOST := registry.local
 
 IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
 
+STATE_CMD := docker inspect --format "{{.State.Running}}"
+
+UNAME := $(shell uname)
+OPEN_CMD := echo Unsupported OS (maybe you are on windows?) for opening url
+ifeq ($(UNAME), Linux)
+	OPEN_CMD := xdg-open
+else ifeq ($(UNAME), Darwin)
+	OPEN_CMD := open
+endif
+
 .PHONY: help
 help: ## Generate the Makefile help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: ips
 ips: ## Gets the ips for the currently running containers.
+	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call exit_not_running_container,$(MASTER_CTR),$(NUM)))
+	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call exit_not_running_container,$(AGENT_CTR),$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 
@@ -53,6 +65,16 @@ endef
 # @param number	  ID of the container.
 define get_agent_ips
 $(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
+endef
+
+# Define the function to exit if a container is not running.
+# @param name	  First part of the container name.
+# @param number	  ID of the container.
+define exit_not_running_container
+if [[ "$(shell $(STATE_CMD) $(1)$(2))" != "true" ]]; then \
+	>&2 echo "$(1)$(2) is not running"; \
+	exit 1; \
+fi;
 endef
 
 # Define the function to stop & remove a container.

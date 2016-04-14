@@ -16,14 +16,17 @@ all                            Runs a full deploy of DCOS in containers.
 agent                          Starts the containers for dcos agents.
 build-all                      Build the Dockerfiles for all the various distros.
 build                          Build the docker image that will be used for the containers.
+clean-certs                    Remove all the certs generated for the registry.
 clean                          Stops all containers and removes all generated files for the cluster.
 clean-containers               Removes and cleans up the master, agent, and installer containers.
 clean-slice                    Removes and cleanups up the systemd slice for the mesos executor.
 deploy                         Run the dcos installer with --deploy.
 genconf                        Run the dcos installer with --genconf.
 generate                       generate the Dockerfiles for all the distros.
+info                           Provides information about the master and agent's ips.
 installer                      Starts the container for the dcos installer.
 master                         Starts the containers for dcos masters.
+open-browser                   Opens your browser to the master ip.
 preflight                      Run the dcos installer with --preflight.
 registry                       Start a docker registry with certs in the mesos master.
 ```
