@@ -47,6 +47,8 @@ INSTALLER_MOUNTS := \
 	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
+HOME_MOUNTS := \
+	-v $(HOME):$(HOME):ro
 
 all: deploy info ## Runs a full deploy of DCOS in containers.
 
@@ -84,14 +86,14 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
 master: ## Starts the containers for dcos masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
 agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS)))
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
