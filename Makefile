@@ -39,6 +39,9 @@ MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 MASTER_MOUNTS :=
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
+VOLUME_MOUNTS := \
+	-v /var/lib/docker \
+	-v /opt
 TMPFS_MOUNTS := \
 	--tmpfs /run:rw \
 	--tmpfs /tmp:rw
@@ -86,14 +89,14 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
 master: ## Starts the containers for dcos masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
 agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 installer: ## Starts the container for the dcos installer.
 	@echo "+ Starting dcos installer"
@@ -105,6 +108,7 @@ installer: ## Starts the container for the dcos installer.
 	@docker run -dt --privileged \
 		$(TMPFS_MOUNTS) \
 		$(INSTALLER_MOUNTS) \
+		$(VOLUME_MOUNTS) \
 		--name $(INSTALLER_CTR) \
 		-e "container=$(INSTALLER_CTR)" \
 		--hostname $(INSTALLER_CTR) \
@@ -190,12 +194,12 @@ preflight: genconf ## Run the dcos installer with --preflight.
 deploy: preflight ## Run the dcos installer with --deploy.
 	@echo "+ Running deploy"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
-	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+	-@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
 web: preflight ## Run the dcos installer with --web.
 	@echo "+ Running web"
 	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --web --offline -v
-	-@docker rm -f $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+	-@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
 
 clean-certs: ## Remove all the certs generated for the registry.
 	$(RM) -r $(CERTS_DIR)

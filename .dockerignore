@@ -1,6 +1,5 @@
 Dockerfile
 .git
-start.sh
 README.md
 dcos_generate_config*.sh
 examples
@@ -8,3 +7,5 @@ configs
 genconf/config.yaml
 distros
 genconf/serve/
+.vagrant/
+Vagrantfile
