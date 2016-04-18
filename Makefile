@@ -260,8 +260,9 @@ Documentation=https://docs.docker.com
 After=dbus.service
 
 [Service]
-ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER}
-MountFlags=slave
+ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER} \
+	--disable-legacy-registry=true \
+	--exec-opt=native.cgroupdriver=cgroupfs
 LimitNOFILE=1048576
 LimitNPROC=1048576
 LimitCORE=infinity
