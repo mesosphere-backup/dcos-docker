@@ -3,33 +3,33 @@
 
 require "yaml"
 
-Vagrant.configure(2) do |config|
-  # configure the vagrant-hostmanager plugin
-  config.hostmanager.enabled = true
-  config.hostmanager.manage_host = true
-  config.hostmanager.ignore_private_ip = false
+require './plugins/vagrant-provision-reboot-plugin'
 
+Vagrant.configure(2) do |config|
   # configure the vagrant-vbguest plugin
   if Vagrant.has_plugin?('vagrant-vbguest')
     config.vbguest.auto_update = true
   end
 
-  config.vm.define "dcos" do |vm_cfg|
-    vm_cfg.vm.hostname = "dcos"
+  config.vm.define "dcos-docker" do |vm_cfg|
+    vm_cfg.vm.hostname = "dcos-docker"
     vm_cfg.vm.network "private_network", ip: "192.168.65.50"
+    vm_cfg.vm.network "forwarded_port", guest: 80, guest_ip: "172.18.0.2", host: 80, host_ip: "172.18.0.2"
+    vm_cfg.vm.network "forwarded_port", guest: 80, guest_ip: "172.18.0.3", host: 80, host_ip: "172.18.0.3"
 
     config.vm.synced_folder '.', '/vagrant', type: "nfs"
 
+    config.vm.provision :shell, path: "provision/guest.sh"
+    config.vm.provision :unix_reboot
+
     # allow explicit nil values in the cfg to override the defaults
-    vm_cfg.vm.box = "mesosphere/dcos-centos-virtualbox"
-    vm_cfg.vm.box_url = "https://downloads.mesosphere.com/dcos-vagrant/metadata.json"
-    vm_cfg.vm.box_version = "~> 0.4.1"
+    vm_cfg.vm.box = "ubuntu/wily64"
+    vm_cfg.vm.box_version = "~> 20160329.0.0"
 
     vm_cfg.vm.provider "virtualbox" do |v|
       v.name = vm_cfg.vm.hostname
       v.cpus = 2
       v.memory = 4096
-      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     end
   end
 end
