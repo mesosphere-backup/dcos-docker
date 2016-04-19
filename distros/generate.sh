@@ -48,6 +48,7 @@ for version in "${versions[@]}"; do
 	iputils-ping # ping
 	libcgroup-dev # for cgroup support
 	libpopt0 # needed by logrotate binary
+	nano # editor for dev purposes
 	net-tools
 	openssh-client openssh-server # for doing installs via ssh
 	sudo
@@ -56,6 +57,7 @@ for version in "${versions[@]}"; do
 	tree
 	unzip
 	vim-nox # editor for dev purposes
+	which # make hdfs work
 	xz-utils
 	)
 
