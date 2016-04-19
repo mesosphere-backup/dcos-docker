@@ -3,8 +3,6 @@
 
 require "yaml"
 
-require './plugins/vagrant-provision-reboot-plugin'
-
 Vagrant.configure(2) do |config|
   # configure the vagrant-vbguest plugin
   if Vagrant.has_plugin?('vagrant-vbguest')
@@ -17,10 +15,9 @@ Vagrant.configure(2) do |config|
     vm_cfg.vm.network "forwarded_port", guest: 80, guest_ip: "172.18.0.2", host: 80, host_ip: "172.18.0.2"
     vm_cfg.vm.network "forwarded_port", guest: 80, guest_ip: "172.18.0.3", host: 80, host_ip: "172.18.0.3"
 
-    config.vm.synced_folder '.', '/vagrant', type: "nfs"
-
     config.vm.provision :shell, path: "provision/guest.sh"
-    config.vm.provision :unix_reboot
+
+    config.vm.synced_folder '.', '/vagrant', type: "nfs"
 
     # allow explicit nil values in the cfg to override the defaults
     vm_cfg.vm.box = "ubuntu/wily64"
