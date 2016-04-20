@@ -57,7 +57,7 @@ CERT_MOUNTS := \
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
 
-all: deploy info ## Runs a full deploy of DCOS in containers.
+all: install info ## Runs a full deploy of DCOS in containers.
 
 info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
