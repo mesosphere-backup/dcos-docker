@@ -78,7 +78,7 @@ base(){
 	# the default is not to use butts for cgroups because the delegate issues still
 	# exists and butts currently does not support the cgroup feature set required
 	# for containers run by docker
-	ExecStart=/usr/bin/docker daemon -H fd:// -D -s overlay \
+	ExecStart=/usr/bin/docker daemon -H fd:// -D -s aufs \
 		--exec-opt=native.cgroupdriver=cgroupfs --disable-legacy-registry=true \
 		--bip 172.18.0.1/16
 	MountFlags=slave
@@ -102,8 +102,9 @@ base(){
 	gpasswd -a vagrant docker
 
 	systemctl daemon-reload
-	systemctl enable docker || true
-	systemctl start docker || true
+	systemctl enable docker
+	systemctl restart docker
+	systemctl status docker
 }
 
 base
