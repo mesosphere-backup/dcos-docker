@@ -8,45 +8,6 @@ Run dcos with systemd and docker in two containers.
 
 2. From this directory run `make`.
 
-## Vagrant Setup
-
-1. Install & Configure Vagrant & VirtualBox
-
-    This repo assumes Vagrant and VirtualBox are installed and configured to work together.
-
-    See the [Architecture docs](./docs/architecture.md) for details about the DC/OS Vagrant cluster architecture.
-
-1. Configure VirtualBox Networking
-
-    Configure the host-only `vboxnet0` network to use the 192.168.65.0/24 subnet.
-
-    1. Create the `vboxnet0` network if it does not exist:
-
-        ```bash
-        VBoxManage list hostonlyifs | grep vboxnet0 -q || VBoxManage hostonlyif create
-        ```
-
-    1. Set the `vboxnet0` subnet:
-
-        ```
-        VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.65.1
-        ```
-
-1. Install Vagrant Host Manager Plugin
-
-    The [Host Manager Plugin](https://github.com/smdahlen/vagrant-hostmanager) manages the `/etc/hosts` on the VMs and host to allow access by hostname.
-
-    ```bash
-    vagrant plugin install vagrant-hostmanager
-    ```
-
-    This will update `/etc/hosts` every time VMs are created or destroyed.
-
-    To avoid entering your password on `vagrant up` & `vagrant destroy` you may enable [passwordless sudo](https://github.com/smdahlen/vagrant-hostmanager#passwordless-sudo).
-
-    On some versions of Mac OS X, installing vagrant plugins may require [installing a modern version of Ruby](./docs/install-ruby.md).
-
-
 **Makefile usage:**
 
 ```console

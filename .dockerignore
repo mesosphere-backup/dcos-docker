@@ -9,3 +9,5 @@ distros
 genconf/serve/
 .vagrant/
 Vagrantfile
+provision
+plugins
