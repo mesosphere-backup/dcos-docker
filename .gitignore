@@ -6,3 +6,4 @@ genconf/serve/
 include
 .path
 .vagrant/
+dcos-genconf.*.tar

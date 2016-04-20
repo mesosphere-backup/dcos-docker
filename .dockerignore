@@ -11,3 +11,4 @@ genconf/serve/
 Vagrantfile
 provision
 plugins
+dcos-genconf.*.tar
