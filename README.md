@@ -4,7 +4,9 @@ Run dcos with systemd and docker in two containers.
 
 ### Requirements
 
-- A Linux machine with systemd, make, and docker 1.10 installed.
+- A Linux machine with systemd, make, and docker 1.10 installed. (Your Docker
+  graphdriver needs to be AUFS or Overlay). You need a kernel that is _not_
+  a franken kernel.
 
 
 ## Quick Start
