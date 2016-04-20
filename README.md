@@ -36,10 +36,9 @@ web                            Run the dcos installer with --web.
 
 - A Linux machine with systemd and docker installed.
 
-
 ### Settings
 
-#### Changing the number of agents &/or masters
+#### Changing the number of masters or agents
 
 This defaults to 1 master and 1 agent. You can change the number of masters by
 setting the variable `MASTERS`. You can change the number of agents by setting
