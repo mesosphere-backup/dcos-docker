@@ -1,6 +1,6 @@
 ## dcos-docker
 
-Run dcos with systemd and docker in two containers.
+Run DC/OS with systemd and docker in two containers.
 
 ### Requirements
 

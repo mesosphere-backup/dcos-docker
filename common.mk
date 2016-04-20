@@ -54,14 +54,14 @@ define newline
 endef
 
 # Define the function to populate the MASTER_IPS variable with the
-# corresponding IPs of the DCOS master containers.
+# corresponding IPs of the DC/OS master containers.
 # @param number	  ID of the container.
 define get_master_ips
 $(eval MASTER_IPS := $(MASTER_IPS) $(shell $(IP_CMD) $(MASTER_CTR)$(1)))
 endef
 
 # Define the function to populate the AGENT_IPS variable with the
-# corresponding IPs of the DCOS agent containers.
+# corresponding IPs of the DC/OS agent containers.
 # @param number	  ID of the container.
 define get_agent_ips
 $(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
