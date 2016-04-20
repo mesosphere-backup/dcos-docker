@@ -16,6 +16,8 @@ MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 # Variables for the files that get generated with the correct configurations.
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
+DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
+DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
@@ -45,9 +47,6 @@ VOLUME_MOUNTS := \
 TMPFS_MOUNTS := \
 	--tmpfs /run:rw \
 	--tmpfs /tmp:rw
-INSTALLER_MOUNTS := \
-	-v $(CONFIG_FILE):/genconf/config.yaml \
-	-v $(DCOS_GENERATE_CONFIG_PATH):/dcos_generate_config.sh
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 HOME_MOUNTS := \
@@ -97,25 +96,12 @@ $(MESOS_SLICE):
 
 agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+##
 
-installer: ## Starts the container for the dcos installer.
-	@echo "+ Starting dcos installer"
-	@if [[ ! -f "$(DCOS_GENERATE_CONFIG_PATH)" ]]; then \
-		>&2 echo "$(DCOS_GENERATE_CONFIG_PATH) does not exist, exiting!"; \
-		exit 1; \
-	fi
-	@touch $(CONFIG_FILE)
-	@docker run -dt --privileged \
-		$(TMPFS_MOUNTS) \
-		$(INSTALLER_MOUNTS) \
-		$(VOLUME_MOUNTS) \
-		--name $(INSTALLER_CTR) \
-		-e "container=$(INSTALLER_CTR)" \
-		--hostname $(INSTALLER_CTR) \
-		$(DOCKER_IMAGE)
-	@sleep 2
-	@docker exec $(INSTALLER_CTR) systemctl start sshd.service # start sshd
-	@docker exec $(INSTALLER_CTR) docker ps -a > /dev/null # just to make sure docker is up
+$(DCOS_GENERATE_CONFIG_PATH):
+	curl $(DCOS_GENERATE_CONFIG_URL) > $@
+
+installer: $(DCOS_GENERATE_CONFIG_PATH) ## Starts the container for the dcos installer.
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
 	$(file >$@,$(CONFIG_BODY))
@@ -185,21 +171,19 @@ registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos mast
 
 genconf: start $(CONFIG_FILE) ## Run the dcos installer with --genconf.
 	@echo "+ Running genconf"
-	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --genconf --offline -v
+	@bash $(DCOS_GENERATE_CONFIG_PATH) --genconf --offline -v
 
 preflight: genconf ## Run the dcos installer with --preflight.
 	@echo "+ Running preflight"
-	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --preflight --offline -v
+	@bash $(DCOS_GENERATE_CONFIG_PATH) --preflight --offline -v
 
 deploy: preflight ## Run the dcos installer with --deploy.
 	@echo "+ Running deploy"
-	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --deploy --offline -v
-	-@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+	@bash $(DCOS_GENERATE_CONFIG_PATH) --deploy --offline -v
 
 web: preflight ## Run the dcos installer with --web.
 	@echo "+ Running web"
-	@docker exec $(INSTALLER_CTR) bash /dcos_generate_config.sh --web --offline -v
-	-@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 # remove the installer container we no longer need it
+	@bash $(DCOS_GENERATE_CONFIG_PATH) --web --offline -v
 
 clean-certs: ## Remove all the certs generated for the registry.
 	$(RM) -r $(CERTS_DIR)
