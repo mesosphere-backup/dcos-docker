@@ -18,6 +18,9 @@ CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
 DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
 DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
+BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
+BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
+
 
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
@@ -44,6 +47,8 @@ SYSTEMD_MOUNTS := \
 VOLUME_MOUNTS := \
 	-v /var/lib/docker \
 	-v /opt
+BOOTSTRAP_VOLUME_MOUNT := \
+	-v $(BOOTSTRAP_GENCONF_PATH):$(BOOTSTRAP_TMP_PATH):ro
 TMPFS_MOUNTS := \
 	--tmpfs /run:rw \
 	--tmpfs /tmp:rw
@@ -52,7 +57,7 @@ CERT_MOUNTS := \
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
 
-all: deploy info ## Runs a full deploy of DCOS in containers.
+all: install info ## Runs a full deploy of DCOS in containers.
 
 info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
@@ -181,6 +186,13 @@ deploy: preflight ## Run the dcos installer with --deploy.
 	@echo "+ Running deploy"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --deploy --offline -v
 
+install: VOLUME_MOUNTS += $(BOOTSTRAP_VOLUME_MOUNT)
+install: genconf ## Install dcos using "advanced" method
+	@echo "+ Running dcos_install.sh on masters"
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call run_dcos_install_in_container,$(MASTER_CTR),$(NUM),master))
+	@echo "+ Running dcos_install.sh on agents"
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call run_dcos_install_in_container,$(AGENT_CTR),$(NUM),slave))
+
 web: preflight ## Run the dcos installer with --web.
 	@echo "+ Running web"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --web --offline -v
@@ -221,6 +233,15 @@ docker run -dt --privileged \
 sleep 2;
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
+endef
+
+# Define the function to run dcos_install.sh in a master or agent container
+# @param name	First part of the container name.
+# @param number	ID of the container.
+# @param role	DCOS role of the container
+define run_dcos_install_in_container
+echo "+ Starting dcos_install.sh $(3) container: $(1)$(2)";
+docker exec $(1)$(2) /bin/bash $(BOOTSTRAP_TMP_PATH)/dcos_install.sh --no-block-dcos-setup $(3);
 endef
 
 # Define the function for moving the generated certs to the location for the IP
@@ -267,7 +288,7 @@ define CONFIG_BODY
 ---
 agent_list:
 - $(subst ${space},${newline} ,$(AGENT_IPS))
-bootstrap_url: file:///opt/dcos_install_tmp
+bootstrap_url: file://$(BOOTSTRAP_TMP_PATH)
 cluster_name: DCOS
 exhibitor_storage_backend: static
 master_discovery: static
