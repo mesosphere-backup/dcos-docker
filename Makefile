@@ -214,6 +214,7 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SERVICE_DIR)
+	$(RM) dcos-genconf.*.tar
 
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
