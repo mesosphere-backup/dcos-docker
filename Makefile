@@ -3,10 +3,10 @@ include common.mk
 
 .PHONY: all build build-all start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
 
-# Set the number of DCOS masters.
+# Set the number of DC/OS masters.
 MASTERS := 1
 
-# Set the number of DCOS agents.
+# Set the number of DC/OS agents.
 AGENTS := 1
 
 # Distro to test against
@@ -21,7 +21,6 @@ DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
-
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
 # Variables for the certs for a registry on the first master node.
@@ -31,7 +30,7 @@ CLIENT_CSR := $(CERTS_DIR)/client.csr
 CLIENT_KEY := $(CERTS_DIR)/client.key
 CLIENT_CERT := $(CERTS_DIR)/client.cert
 
-# Variables for the ssh keys that will be generated for installing DCOS in the
+# Variables for the ssh keys that will be generated for installing DC/OS in the
 # containers.
 SSH_DIR := $(CURDIR)/include/ssh
 SSH_ALGO := ed25519
@@ -57,12 +56,12 @@ CERT_MOUNTS := \
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
 
-all: install info ## Runs a full deploy of DCOS in containers.
+all: install info ## Runs a full deploy of DC/OS in containers.
 
 info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
-	@echo "DCOS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
+	@echo "DC/OS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
 
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
@@ -92,21 +91,21 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
-master: ## Starts the containers for dcos masters.
+master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
 	@sudo systemctl start mesos_executors.slice
 
-agent: $(MESOS_SLICE) ## Starts the containers for dcos agents.
+agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 ##
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl $(DCOS_GENERATE_CONFIG_URL) > $@
 
-installer: $(DCOS_GENERATE_CONFIG_PATH) ## Starts the container for the dcos installer.
+installer: $(DCOS_GENERATE_CONFIG_PATH) ## Starts the container for the DC/OS installer.
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
 	$(file >$@,$(CONFIG_BODY))
@@ -170,30 +169,30 @@ registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos mast
 	@$(eval REGISTRY_IP := $(firstword $(MASTER_IPS)):5000)
 	@$(call copy_registry_certs,$(REGISTRY_IP))
 	@$(call copy_registry_certs,$(REGISTRY_HOST):5000)
-	@echo "Your registry is reachable from inside the DCOS containers at:"
+	@echo "Your registry is reachable from inside the DC/OS containers at:"
 	@echo -e "\t$(REGISTRY_HOST):5000"
 	@echo -e "\t$(REGISTRY_IP)"
 
-genconf: start $(CONFIG_FILE) ## Run the dcos installer with --genconf.
+genconf: start $(CONFIG_FILE) ## Run the DC/OS installer with --genconf.
 	@echo "+ Running genconf"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --genconf --offline -v
 
-preflight: genconf ## Run the dcos installer with --preflight.
+preflight: genconf ## Run the DC/OS installer with --preflight.
 	@echo "+ Running preflight"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --preflight --offline -v
 
-deploy: preflight ## Run the dcos installer with --deploy.
+deploy: preflight ## Run the DC/OS installer with --deploy.
 	@echo "+ Running deploy"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --deploy --offline -v
 
 install: VOLUME_MOUNTS += $(BOOTSTRAP_VOLUME_MOUNT)
-install: genconf ## Install dcos using "advanced" method
+install: genconf ## Install DC/OS using "advanced" method
 	@echo "+ Running dcos_install.sh on masters"
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call run_dcos_install_in_container,$(MASTER_CTR),$(NUM),master))
 	@echo "+ Running dcos_install.sh on agents"
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call run_dcos_install_in_container,$(AGENT_CTR),$(NUM),slave))
 
-web: preflight ## Run the dcos installer with --web.
+web: preflight ## Run the DC/OS installer with --web.
 	@echo "+ Running web"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --web --offline -v
 
@@ -223,7 +222,7 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 # @param number	  ID of the container.
 # @param mounts	  Specific mounts for the container.
 define start_dcos_container
-echo "+ Starting dcos container: $(1)$(2)";
+echo "+ Starting DC/OS container: $(1)$(2)";
 docker run -dt --privileged \
 	$(3) \
 	--name $(1)$(2) \
@@ -239,7 +238,7 @@ endef
 # Define the function to run dcos_install.sh in a master or agent container
 # @param name	First part of the container name.
 # @param number	ID of the container.
-# @param role	DCOS role of the container
+# @param role	DC/OS role of the container
 define run_dcos_install_in_container
 echo "+ Starting dcos_install.sh $(3) container: $(1)$(2)";
 docker exec $(1)$(2) /bin/bash $(BOOTSTRAP_TMP_PATH)/dcos_install.sh --no-block-dcos-setup $(3);
