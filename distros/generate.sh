@@ -43,6 +43,7 @@ for version in "${versions[@]}"; do
 	bash-completion # for bash-completion integration
 	btrfs-tools # for "btrfs/ioctl.h" (and "version.h" if possible)
 	curl ca-certificates # for downloading Go
+	debianutils # install which for hdfs
 	git # for "git commit" info in "docker -v"
 	iproute ipset iptables # for ip, iptables commands
 	iputils-ping # ping
@@ -57,7 +58,6 @@ for version in "${versions[@]}"; do
 	tree
 	unzip
 	vim-nox # editor for dev purposes
-	which # make hdfs work
 	xz-utils
 	)
 
@@ -75,6 +75,7 @@ for version in "${versions[@]}"; do
 			packages=( "${packages[@]/iputils-ping/iputils}" )
 			packages=( "${packages[@]/libcgroup-dev/libcgroup}" )
 			packages=( "${packages[@]/libpopt0/}" )
+			packages=( "${packages[@]/debianutils/which}" )
 			packages=( "${packages[@]/vim-nox/vim-minimal}" )
 			packages=( "${packages[@]/xz-utils/xz}" )
 			;;

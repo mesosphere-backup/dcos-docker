@@ -2,6 +2,11 @@
 
 Run dcos with systemd and docker in two containers.
 
+### Requirements
+
+- A Linux machine with systemd, make, and docker 1.10 installed.
+
+
 ## Quick Start
 
 1. Put a `dcos_generate_config.sh` in the root of this directory.
@@ -31,10 +36,6 @@ preflight                      Run the dcos installer with --preflight.
 registry                       Start a docker registry with certs in the mesos master.
 web                            Run the dcos installer with --web.
 ```
-
-### Requirements
-
-- A Linux machine with systemd and docker installed.
 
 ### Settings
 
