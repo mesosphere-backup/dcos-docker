@@ -7,3 +7,4 @@ include
 .path
 .vagrant/
 dcos-genconf.*.tar
+genconf/cluster_packages.json
