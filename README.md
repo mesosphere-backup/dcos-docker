@@ -52,6 +52,8 @@ $ make MASTERS=3 AGENTS=5
 
 #### Changing the distro
 
+> **NOTE:** This feature should only be used for testing, it is unstable.
+
 By default the cluster will be spun up using a centos base image but if you
 want to test something else you can run:
 
