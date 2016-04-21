@@ -46,6 +46,11 @@ web                            Run the DC/OS installer with --web.
 Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/).
 
 ```console
+# everything will work a lot better if you keep the guest additions in sync
+$ vagrant plugin install vagrant-vbguest
+```
+
+```console
 # configure networking
 host$ VBoxManage list hostonlyifs | grep vboxnet0 -q || VBoxManage hostonlyif create
 host$ VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.65.1
