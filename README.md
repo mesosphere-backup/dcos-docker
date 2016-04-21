@@ -63,3 +63,54 @@ want to test something else you can run:
 ```console
 $ make DISTRO=fedora
 ```
+
+### Running with vagrant
+
+There is a Vagrantfile in the root on this repository you can use it to run
+dcos-docker if you do not satisfy the [requirements](#requirements) on your
+host.
+
+```console
+# bring up the virtual machine
+$ vagrant up
+
+# ssh into the vagrant box
+$ vagrant ssh
+
+# the directory for this repo is in /vagrant
+$ cd /vagrant
+
+# now run make
+$ make
+```
+
+### Troubleshooting
+
+Oh dear, you must be in an unfortunate position. You have a few options with
+regard to debugging your container cluster.
+
+If the containers are currently running then the best option is to `docker exec`
+into the master or agent and poke around. Here is an example of that:
+
+```console
+$ docker exec -it dcos-docker-master1 bash
+
+# list the systemd units
+[root@dcos-docker-master1 /]# systemctl list-units
+...
+dbus.socket                         loaded active     running         D-Bus System Message Bus Socket
+systemd-fail.service                loaded failed     exited          Journal Audit Socket
+systemd-journald-dev-log.socket     loaded active     running         Journal Socket (/dev/log)
+systemd-journald.socket             loaded active     running         Journal Socket
+basic.target                        loaded active     active          Basic System
+dcos.target                         loaded active     active          dcos.target
+local-fs.target                     loaded active     active          Local File Systems
+...
+
+# find the failed unit and get the status
+[root@dcos-docker-master1 /]# systemctl status systemd-fail
+
+# get the logs from journald
+[root@dcos-docker-master1 /]# journalctl -xefu systemd-fail
+```
+
