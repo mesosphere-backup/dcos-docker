@@ -98,6 +98,12 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
+#### Re-building the vagrant box base with packer
+
+```console
+$ packer build packer.json
+```
+
 ### Troubleshooting
 
 Oh dear, you must be in an unfortunate position. You have a few options with

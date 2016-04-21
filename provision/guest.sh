@@ -37,7 +37,6 @@ base(){
 		less \
 		libc6-dev \
 		libltdl-dev \
-		linux-image-extra-$(uname -r) \
 		locales \
 		lsof \
 		make \
@@ -57,15 +56,13 @@ base(){
 		zip \
 		--no-install-recommends
 
-	apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-	echo 'deb https://apt.dockerproject.org/repo ubuntu-wily main' > /etc/apt/sources.list.d/docker.list
-
 	update
 
-	apt-get install -y docker-engine
+	curl -sSL https://get.docker.com/builds/Linux/x86_64/docker-latest.tgz | tar -xvz \
+		-C /usr/bin --strip-components 1
+	chmod +x /usr/bin/docker*
 
 	# change to overlay for docker and other sane settings
-	rm /lib/systemd/system/docker.service
 	cat > /lib/systemd/system/docker.service <<-'EOF'
 	[Unit]
 	Description=Docker Application Container Engine
@@ -96,7 +93,8 @@ base(){
 	WantedBy=multi-user.target
 	EOF
 
-	uname -a
+	curl -sSL https://raw.githubusercontent.com/docker/docker/master/contrib/init/systemd/docker.socket \
+		-o /lib/systemd/system/docker.socket
 
 	groupadd docker || true
 	gpasswd -a vagrant docker
