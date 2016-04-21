@@ -8,7 +8,7 @@ Run DC/OS with systemd and docker in two containers.
   graphdriver needs to be AUFS or Overlay). You need a kernel that is _not_
   a franken kernel.
 
-- Alternatively, you can install VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
+- Alternatively, you can use VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
 
 ## Quick Start
 
@@ -46,25 +46,30 @@ web                            Run the DC/OS installer with --web.
 Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/).
 
 ```console
-VBoxManage list hostonlyifs | grep vboxnet0 -q || VBoxManage hostonlyif create
-VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.65.1
-vagrant up
-vagrant ssh
-```
+# configure networking
+host$ VBoxManage list hostonlyifs | grep vboxnet0 -q || VBoxManage hostonlyif create
+host$ VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.65.1
 
-Now you can run
-```console
-cd /vagrant && make
+# bring up the virtual machine
+host$ vagrant up
+
+# ssh into the vagrant box
+host$ vagrant ssh
+
+# the directory for this repo is in /vagrant in the VM
+vagrant@dcos-docker$ cd /vagrant
+
+# now run make
+vagrant@dcos-docker$ make
 ```
-in the VirtualBox VM.
 
 To make the Docker containers in the VM reachable from the host, you can run the
-following on Linux on the host (not inside the VM):
+following on Linux on the host:
 
 ```console
-sudo ip route replace 172.18.0.0/16 via 192.168.65.50
-ping 172.18.0.2 #ping DC/OS master after cluster is up
-curl http://172.18.0.2
+host$ sudo ip route replace 172.18.0.0/16 via 192.168.65.50
+host$ ping 172.18.0.2 #ping DC/OS master after cluster is up
+host$ curl http://172.18.0.2
 ```
 
 Suggestions on making this work on Macs appreciated.
@@ -91,26 +96,6 @@ want to test something else you can run:
 
 ```console
 $ make DISTRO=fedora
-```
-
-### Running with vagrant
-
-There is a Vagrantfile in the root on this repository you can use it to run
-dcos-docker if you do not satisfy the [requirements](#requirements) on your
-host.
-
-```console
-# bring up the virtual machine
-$ vagrant up
-
-# ssh into the vagrant box
-$ vagrant ssh
-
-# the directory for this repo is in /vagrant
-$ cd /vagrant
-
-# now run make
-$ make
 ```
 
 ### Troubleshooting
