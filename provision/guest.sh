@@ -24,6 +24,7 @@ base(){
 		cgroupfs-mount \
 		coreutils \
 		curl \
+		dkms \
 		dnsutils \
 		e2fsprogs \
 		file \
@@ -37,6 +38,7 @@ base(){
 		less \
 		libc6-dev \
 		libltdl-dev \
+		linux-headers-$(uname -r) \
 		locales \
 		lsof \
 		make \
