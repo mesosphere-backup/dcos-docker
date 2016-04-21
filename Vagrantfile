@@ -12,12 +12,8 @@ Vagrant.configure(2) do |config|
   config.vm.define "dcos-docker" do |vm_cfg|
     vm_cfg.vm.hostname = "dcos-docker"
     vm_cfg.vm.network "private_network", ip: "192.168.65.50"
-    vm_cfg.vm.network "forwarded_port", guest: 80, guest_ip: "172.18.0.2", host: 80, host_ip: "172.18.0.2"
-    vm_cfg.vm.network "forwarded_port", guest: 80, guest_ip: "172.18.0.3", host: 80, host_ip: "172.18.0.3"
-
     config.vm.provision :shell, path: "provision/guest.sh"
-
-    config.vm.synced_folder '.', '/vagrant', type: "nfs"
+    config.vm.synced_folder '.', '/vagrant', type: "virtualbox"
 
     # allow explicit nil values in the cfg to override the defaults
     vm_cfg.vm.box = "ubuntu/wily64"
