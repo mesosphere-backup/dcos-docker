@@ -70,14 +70,16 @@ vagrant@dcos-docker$ make
 
 To make the Docker containers in the VM reachable from the host, you can run the
 following on Linux on the host:
-
 ```console
 host$ sudo ip route replace 172.18.0.0/16 via 192.168.65.50
 host$ ping 172.18.0.2 #ping DC/OS master after cluster is up
 host$ curl http://172.18.0.2
 ```
 
-Suggestions on making this work on Macs appreciated.
+To do the same on Mac OS X you can use:
+```console
+host$ sudo route -nv -net 172.18.0.0/16 192.168.65.50
+```
 
 ### Settings
 
