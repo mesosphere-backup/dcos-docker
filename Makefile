@@ -33,7 +33,7 @@ CLIENT_CERT := $(CERTS_DIR)/client.cert
 # Variables for the ssh keys that will be generated for installing DC/OS in the
 # containers.
 SSH_DIR := $(CURDIR)/include/ssh
-SSH_ALGO := ed25519
+SSH_ALGO := rsa
 SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
 # Variable for the path to the mesos executors systemd slice.
