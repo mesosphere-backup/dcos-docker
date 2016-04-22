@@ -9,10 +9,5 @@ distros
 genconf/serve/
 .vagrant/
 Vagrantfile
-provision
-plugins
 dcos-genconf.*.tar
-*.ova
-packer_cache
-*.box
-output-virtualbox-ovf
+vagrant/
