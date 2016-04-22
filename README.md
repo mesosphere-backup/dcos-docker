@@ -82,7 +82,7 @@ host$ sudo route -nv -net 172.18.0.0/16 192.168.65.50
 ```
 
 To SSH directly to the container you can use:
-```
+```console
 host$ ssh -i genconf/ssh_key root@172.18.0.2
 ```
 
