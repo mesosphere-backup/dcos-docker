@@ -110,7 +110,7 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
-#### Re-building the vagrant box base with packer
+#### Rebuilding the Vagrant box base with Packer
 
 ```console
 $ packer build packer.json
