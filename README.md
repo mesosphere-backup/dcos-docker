@@ -146,3 +146,8 @@ local-fs.target                     loaded active     active          Local File
 [root@dcos-docker-master1 /]# journalctl -xefu systemd-fail
 ```
 
+For the `dcos-spartan` service to start successfully, make sure that
+you have dummy net driver support (`CONFIG_DUMMY`) enabled in your kernel.
+Most standard distribution kernels should have this by default. On some
+older kernels you may need to manually install this module with
+`modprobe dummy` before starting the container cluster.
