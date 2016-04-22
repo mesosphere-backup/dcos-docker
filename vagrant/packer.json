@@ -1,11 +1,13 @@
 {
   "variables": {
-    "script": "/home/vagrant/provision.sh"
+    "script": "/home/vagrant/provision.sh",
+    "ovf_path": "",
+    "box_output": ""
   },
   "builders": [
     {
       "type": "virtualbox-ovf",
-      "source_path": "debian.ova",
+      "source_path": "{{user `ovf_path`}}",
       "ssh_username": "vagrant",
       "ssh_password": "vagrant",
       "shutdown_command": "echo 'vagrant' | sudo -S shutdown -P now"
@@ -14,7 +16,7 @@
   "provisioners": [
     {
       "type": "file",
-      "source": "provision/guest.sh",
+      "source": "vagrant/provision/guest.sh",
       "destination": "{{user `script`}}"
     },
     {
@@ -30,16 +32,8 @@
   "post-processors": [
     {
       "type": "vagrant",
+      "output": "{{user `box_output`}}",
       "keep_input_artifact": false
-    },
-    {
-      "type": "atlas",
-      "artifact": "jess/dcos-docker",
-      "artifact_type": "vagrant.box",
-      "metadata": {
-        "provider": "virtualbox",
-        "version": "0.0.2"
-      }
     }
   ]
 }
