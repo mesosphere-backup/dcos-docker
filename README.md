@@ -4,9 +4,8 @@ Run DC/OS with systemd and docker in two containers.
 
 ### Requirements
 
-- A Linux machine with systemd, make, and docker 1.10 installed. (Your Docker
-  graphdriver needs to be AUFS or Overlay). You need a kernel that is _not_
-  a franken kernel.
+- A Linux machine with systemd, make, and docker 1.10 installed. You need a
+  kernel that is _not_ a franken kernel.
 
 - Alternatively, you can use VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
 
@@ -83,6 +82,19 @@ To SSH directly to the container you can use:
 ```console
 host$ ssh -i genconf/ssh_key root@172.18.0.2
 ```
+
+### Graphdriver/Storage driver
+
+There is no requiremnt on the hosts storage driver type, but the docker daemon
+running inside docker container supports only `aufs` and `overlay`. The loopback
+devicemapper may be problematic when it comes to loopback devices - they may not
+be properly cleaned up and thus prevent docker daemon from starting. YMMV
+though.
+
+Unless user specifies graphdriver using `DOCKER_GRAPHDRIVER` env variable,
+the script tries to use the same one as the host uses. It detects it using
+`docker info` command. The resulting graphdriver must be among supported ones,
+or the script will terminate.
 
 ### Settings
 
