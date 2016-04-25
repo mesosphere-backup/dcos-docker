@@ -205,7 +205,7 @@ clean-containers: ## Removes and cleans up the master, agent, and installer cont
 	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
-	@sudo systemctl start mesos_executors.slice
+	@sudo systemctl stop mesos_executors.slice
 	@sudo rm -f $(MESOS_SLICE)
 
 clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
