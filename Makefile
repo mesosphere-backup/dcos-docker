@@ -205,7 +205,7 @@ clean-containers: ## Removes and cleans up the master, agent, and installer cont
 	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
-	@sudo systemctl start mesos_executors.slice
+	@sudo systemctl stop mesos_executors.slice
 	@sudo rm -f $(MESOS_SLICE)
 
 clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
@@ -284,6 +284,10 @@ endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
 # of the specific containers get populated correctly.
+
+# EXTRA_GENCONF_CONFIG is a way to add extra config parameters in scripts
+# calling out dcos-docker.
+EXTRA_GENCONF_CONFIG :=
 define CONFIG_BODY
 ---
 agent_list:
@@ -302,4 +306,5 @@ ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
+$(EXTRA_GENCONF_CONFIG)
 endef
