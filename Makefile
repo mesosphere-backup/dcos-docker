@@ -208,12 +208,21 @@ clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor
 	@sudo systemctl stop mesos_executors.slice
 	@sudo rm -f $(MESOS_SLICE)
 
+VAGRANT_BOX_VERSION := 8.4.0
+VAGRANT_OVF := $(HOME)/.vagrant.d/boxes/debian-VAGRANTSLASH-jessie64/$(VAGRANT_BOX_VERSION)/virtualbox/box.ovf
+$(VAGRANT_OVF):
+	vagrant box add --provider virtualbox --box-version $(VAGRANT_BOX_VERSION) debian/jessie64
+
+dcos-docker.box: $(VAGRANT_OVF)
+	packer build -var ovf_path=$(VAGRANT_OVF) -var box_output=$@ vagrant/packer.json
+
 clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
 	$(RM) $(CURDIR)/genconf/ssh_key
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SERVICE_DIR)
 	$(RM) dcos-genconf.*.tar
+	$(RM) *.box
 
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
