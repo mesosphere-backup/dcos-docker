@@ -284,6 +284,10 @@ endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
 # of the specific containers get populated correctly.
+
+# EXTRA_GENCONF_CONFIG is a way to add extra config parameters in scripts
+# calling out dcos-docker.
+EXTRA_GENCONF_CONFIG :=
 define CONFIG_BODY
 ---
 agent_list:
@@ -302,4 +306,5 @@ ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
+$(EXTRA_GENCONF_CONFIG)
 endef
