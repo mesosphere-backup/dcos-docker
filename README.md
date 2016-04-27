@@ -9,22 +9,6 @@ Run DC/OS with systemd and docker in two containers.
 
 - Alternatively, you can use VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
 
-## Github Pull Request (PR) Labels
-
-Various labels used on pull requests and what they mean
-
- - `Work in progress` The code is a work in progress / not yet ready to be
-   reviewed or acted upon by others. It can be handy to open up a PR in order
-   to share work / ideas with others. Use this label to indicate the PR isn't
-   intended to be reviewed or merged.
- - `Request for comment` The code is some idea which may or may not land, but
-    there are questions if the approach is right. Review should focus on
-    whether or not it is overall a good idea to do this and how to structure it.
- - `Ready for review` The author thinks the PR is ready to land, and is looking for a
-    review in order to get it in. The PR may bounce back to "work in progress"
-    or "request for comment" if it needs more work or discussion. Might also
-    just do all the review and fixup with the label attached.
-
 ## Quick Start
 
 1. Put a `dcos_generate_config.sh` in the root of this directory.
@@ -177,3 +161,19 @@ you have dummy net driver support (`CONFIG_DUMMY`) enabled in your kernel.
 Most standard distribution kernels should have this by default. On some
 older kernels you may need to manually install this module with
 `modprobe dummy` before starting the container cluster.
+
+## Github Pull Request (PR) Labels
+
+Various labels used on pull requests and what they mean
+
+ - `Work in progress` The code is a work in progress / not yet ready to be
+   reviewed or acted upon by others. It can be handy to open up a PR in order
+   to share work / ideas with others. Use this label to indicate the PR isn't
+   intended to be reviewed or merged.
+ - `Request for comment` The code is some idea which may or may not land, but
+    there are questions if the approach is right. Review should focus on
+    whether or not it is overall a good idea to do this and how to structure it.
+ - `Ready for review` The author thinks the PR is ready to land, and is looking for a
+    review in order to get it in. The PR may bounce back to "work in progress"
+    or "request for comment" if it needs more work or discussion. Might also
+    just do all the review and fixup with the label attached.
