@@ -348,16 +348,6 @@ $(PGP_CMD_PREFIX) \
 	--armor --export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
 endef
 
-# Define the function for generating a GPG key for the number of secret shares.
-# @param num	  The shard number for the key.
-define generate_pgp_key
-cd $(PGP_DIR) && \
-	cat $(PGP_CONFIG_FILE) | sed 's/$(PGP_EMAIL)/crash$(1)@override.com/g' | \
-	gpg --batch --gen-key;
-$(PGP_CMD_PREFIX) \
-	--export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
-endef
-
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
 # of the specific containers get populated correctly.
 
