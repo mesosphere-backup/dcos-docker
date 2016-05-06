@@ -355,7 +355,7 @@ cd $(PGP_DIR) && \
 	cat $(PGP_CONFIG_FILE) | sed 's/$(PGP_EMAIL)/crash$(1)@override.com/g' | \
 	gpg --batch --gen-key;
 $(PGP_CMD_PREFIX) \
-	--armor --export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
+	--export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
 endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
