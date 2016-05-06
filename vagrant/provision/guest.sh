@@ -45,6 +45,7 @@ base(){
 		mount \
 		nano \
 		net-tools \
+		rng-tools \
 		silversearcher-ag \
 		ssh \
 		strace \

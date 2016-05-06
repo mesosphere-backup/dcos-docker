@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build build-all start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
+.PHONY: all build build-all gpg gpg-list-keys start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
 
 # Set the number of DC/OS masters.
 MASTERS := 1
@@ -35,6 +35,20 @@ CLIENT_CERT := $(CERTS_DIR)/client.cert
 SSH_DIR := $(CURDIR)/include/ssh
 SSH_ALGO := rsa
 SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
+
+# Variables for the gpg keys that will be generated to encrypt the DC/OS secret
+# master key shards.
+SECRET_SHARES := 5
+SECRET_THRESHOLD := 3
+PGP_DIR := $(CURDIR)/include/gnupg
+PGP_SECRING := $(PGP_DIR)/dcos.sec
+PGP_PUBRING := $(PGP_DIR)/dcos.pub
+PGP_CONFIG_FILE := $(PGP_DIR)/dcos
+PGP_KEY := $(PGP_DIR)/dcos.pub
+PGP_CMD_PREFIX := gpg --no-default-keyring \
+	--secret-keyring $(PGP_SECRING) \
+	--keyring $(PGP_PUBRING)
+PGP_GENCONF_DIR := $(CURDIR)/genconf/pgp_keys
 
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
@@ -88,6 +102,24 @@ $(SSH_KEY): $(SSH_DIR)
 
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
+
+$(PGP_DIR):
+	@mkdir -p $@
+
+$(PGP_GENCONF_DIR):
+	@mkdir -p $@
+
+$(PGP_CONFIG_FILE): $(PGP_DIR)
+	@$(foreach NUM,$(shell seq 1 $(SECRET_SHARES)),$(call generate_pgp_config_file,$(NUM)))
+
+gpg: $(PGP_CONFIG_FILE) $(PGP_GENCONF_DIR)
+	@sudo rngd -r /dev/urandom > /dev/null 2>&1 || true
+	cd $(PGP_DIR) && gpg --batch --gen-key dcos
+	$(foreach NUM,$(shell seq 1 $(SECRET_SHARES)),$(call generate_pgp_key,$(NUM)))
+
+gpg-list-keys: ## List the gpg keys in the dcos-docker gpg keyring.
+	@$(PGP_CMD_PREFIX) \
+	--list-keys
 
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
@@ -220,7 +252,11 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) $(CURDIR)/genconf/ssh_key
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
+	$(RM) -r $(PGP_DIR)
+	$(RM) -r $(PGP_GENCONF_DIR)
 	$(RM) -r $(SERVICE_DIR)
+	sudo $(RM) -r $(CURDIR)/genconf/serve
+	$(RM) $(CURDIR)/cluster_packages.json
 	$(RM) dcos-genconf.*.tar
 	$(RM) *.box
 
@@ -289,6 +325,37 @@ TimeoutStartSec=0
 
 [Install]
 WantedBy=default.target
+endef
+
+# Define the function for generating the unattended GPG key generation config
+# file.
+define generate_pgp_config_file
+echo -e "%echo Generating an OpenPGP key for crash$(1)@override.com\n\
+Key-Type: 1\n\
+Key-Length: 4096\n\
+Name-Real: DC/OS Operator\n\
+Name-Email: crash$(1)@override.com\n\
+Expire-Date: 0\n\
+%pubring dcos.pub\n\
+%secring dcos.sec\n\
+%commit\n" >> $(PGP_CONFIG_FILE);
+endef
+
+# Define the function for generating a GPG key for the number of secret shares.
+# @param num	  The shard number for the key.
+define generate_pgp_key
+$(PGP_CMD_PREFIX) \
+	--armor --export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
+endef
+
+# Define the function for generating a GPG key for the number of secret shares.
+# @param num	  The shard number for the key.
+define generate_pgp_key
+cd $(PGP_DIR) && \
+	cat $(PGP_CONFIG_FILE) | sed 's/$(PGP_EMAIL)/crash$(1)@override.com/g' | \
+	gpg --batch --gen-key;
+$(PGP_CMD_PREFIX) \
+	--armor --export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
 endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
