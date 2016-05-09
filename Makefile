@@ -345,7 +345,7 @@ endef
 # @param num	  The shard number for the key.
 define generate_pgp_key
 $(PGP_CMD_PREFIX) \
-	--armor --export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
+	--export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
 endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
