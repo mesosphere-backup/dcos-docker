@@ -106,6 +106,33 @@ base(){
 	systemctl enable docker
 	systemctl restart docker
 	systemctl status docker
+
+	sed -i.bak 's/GRUB_CMDLINE_LINUX="debian-installer=en_US"/GRUB_CMDLINE_LINUX="debian-installer=en_US cgroup_enable=memory swapaccount=1 apparmor=1 security=apparmor"/g' /etc/default/grub
+	update-grub
 }
 
-base
+update_kernel(){
+	update
+
+	stretch_sources=/etc/apt/sources.list.d/stretch.list
+
+	echo "deb http://httpredir.debian.org/debian stretch main contrib non-free" > $stretch_sources
+
+	apt-get update
+	DEBIAN_FRONTEND=noninteractive apt-get install -y \
+		-o Dpkg::Options::="--force-confdef" \
+		-o Dpkg::Options::="--force-confold" \
+		-t stretch \
+		linux-image-amd64
+
+	rm $stretch_sources
+	update
+
+	reboot
+}
+
+if [[ "$1" == "kernel" ]]; then
+	update_kernel
+else
+	base
+fi
