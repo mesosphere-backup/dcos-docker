@@ -17,7 +17,7 @@ MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
 DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
-DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
+DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.ee.sh
 BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
@@ -52,7 +52,6 @@ PGP_CMD_PREFIX := gpg --no-default-keyring \
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
 # Variables for various docker arguments.
-MASTER_MOUNTS :=
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
 VOLUME_MOUNTS := \
@@ -119,7 +118,7 @@ gpg-list-keys: ## List the gpg keys in the dcos-docker gpg keyring.
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
 master: ## Starts the containers for DC/OS masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
@@ -127,7 +126,6 @@ $(MESOS_SLICE):
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
-##
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl $(DCOS_GENERATE_CONFIG_URL) > $@
@@ -264,13 +262,15 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 define start_dcos_container
 echo "+ Starting DC/OS container: $(1)$(2)";
 docker run -dt --privileged \
+	-v $(PWD)/tmp/opt/mesosphere:/opt/mesosphere.new:ro \
 	$(3) \
 	--name $(1)$(2) \
 	-e "container=$(1)$(2)" \
 	--hostname $(1)$(2) \
 	--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
 	$(DOCKER_IMAGE);
-sleep 2;
+#sleep 2;
+docker exec $(1)$(2) cp -a /opt/mesosphere.new /opt/mesosphere;
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
@@ -281,7 +281,7 @@ endef
 # @param role	DC/OS role of the container
 define run_dcos_install_in_container
 echo "+ Starting dcos_install.sh $(3) container: $(1)$(2)";
-docker exec $(1)$(2) /bin/bash $(BOOTSTRAP_TMP_PATH)/dcos_install.sh --no-block-dcos-setup $(3);
+docker exec $(1)$(2) /bin/bash $(BOOTSTRAP_TMP_PATH)/dcos_install.sh --no-block-dcos-setup --disable-preflight $(3);
 endef
 
 # Define the function for moving the generated certs to the location for the IP
@@ -370,5 +370,9 @@ ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
 bootstrap_secrets: 'true'
+httpauth_enabled: 'true'
+zk_super_creds: super:secret
+zk_master_creds: dcos_master:secret1
+zk_agent_creds: dcos_agent:secret2
 $(EXTRA_GENCONF_CONFIG)
 endef
