@@ -42,13 +42,11 @@ SECRET_SHARES := 5
 SECRET_THRESHOLD := 3
 PGP_DIR := $(CURDIR)/include/gnupg
 PGP_SECRING := $(PGP_DIR)/dcos.sec
-PGP_PUBRING := $(PGP_DIR)/dcos.pub
+PGP_PUBRING := $(PGP_DIR)/dcos.public
 PGP_CONFIG_FILE := $(PGP_DIR)/dcos
-PGP_KEY := $(PGP_DIR)/dcos.pub
 PGP_CMD_PREFIX := gpg --no-default-keyring \
 	--secret-keyring $(PGP_SECRING) \
 	--keyring $(PGP_PUBRING)
-PGP_GENCONF_DIR := $(CURDIR)/genconf/pgp_keys
 
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
@@ -69,6 +67,8 @@ CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
+SECRETS_MOUNTS := \
+	-v $(PGP_DIR):/var/lib/dcos/secrets/vault/default:ro
 
 all: install info ## Runs a full deploy of DC/OS in containers.
 
@@ -106,13 +106,10 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 $(PGP_DIR):
 	@mkdir -p $@
 
-$(PGP_GENCONF_DIR):
-	@mkdir -p $@
-
 $(PGP_CONFIG_FILE): $(PGP_DIR)
 	@$(foreach NUM,$(shell seq 1 $(SECRET_SHARES)),$(call generate_pgp_config_file,$(NUM)))
 
-gpg: $(PGP_CONFIG_FILE) $(PGP_GENCONF_DIR)
+gpg: $(PGP_CONFIG_FILE)
 	@sudo rngd -r /dev/urandom > /dev/null 2>&1 || true
 	cd $(PGP_DIR) && gpg --batch --gen-key dcos
 	$(foreach NUM,$(shell seq 1 $(SECRET_SHARES)),$(call generate_pgp_key,$(NUM)))
@@ -123,8 +120,8 @@ gpg-list-keys: ## List the gpg keys in the dcos-docker gpg keyring.
 
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
-master: ## Starts the containers for DC/OS masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+master: gpg ## Starts the containers for DC/OS masters.
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS) $(SECRETS_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
@@ -253,9 +250,9 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(PGP_DIR)
-	$(RM) -r $(PGP_GENCONF_DIR)
 	$(RM) -r $(SERVICE_DIR)
-	sudo $(RM) -r $(CURDIR)/genconf/serve
+	$(RM) -r $(CURDIR)/genconf/serve
+	$(RM) -r $(CURDIR)/genconf/state
 	$(RM) $(CURDIR)/cluster_packages.json
 	$(RM) dcos-genconf.*.tar
 	$(RM) *.box
@@ -336,7 +333,7 @@ Key-Length: 4096\n\
 Name-Real: DC/OS Operator\n\
 Name-Email: crash$(1)@override.com\n\
 Expire-Date: 0\n\
-%pubring dcos.pub\n\
+%pubring dcos.public\n\
 %secring dcos.sec\n\
 %commit\n" >> $(PGP_CONFIG_FILE);
 endef
@@ -345,7 +342,9 @@ endef
 # @param num	  The shard number for the key.
 define generate_pgp_key
 $(PGP_CMD_PREFIX) \
-	--export crash$(1)@override.com > $(PGP_GENCONF_DIR)/crash$(1).asc;
+	--export --armor crash$(1)@override.com > $(PGP_DIR)/crash$(1).pub;
+$(PGP_CMD_PREFIX) \
+	--export-secret-keys --armor crash$(1)@override.com > $(PGP_DIR)/crash$(1).key;
 endef
 
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
