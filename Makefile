@@ -67,8 +67,6 @@ CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
-SECRETS_MOUNTS := \
-	-v $(PGP_DIR):/var/lib/dcos/secrets/vault/default:ro
 
 all: install info ## Runs a full deploy of DC/OS in containers.
 
@@ -120,8 +118,8 @@ gpg-list-keys: ## List the gpg keys in the dcos-docker gpg keyring.
 
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
-master: gpg ## Starts the containers for DC/OS masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS) $(SECRETS_MOUNTS)))
+master: ## Starts the containers for DC/OS masters.
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
@@ -371,5 +369,6 @@ ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
+bootstrap_secrets: 'true'
 $(EXTRA_GENCONF_CONFIG)
 endef
