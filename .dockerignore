@@ -11,3 +11,4 @@ genconf/serve/
 Vagrantfile
 dcos-genconf.*.tar
 vagrant/
+tmp/

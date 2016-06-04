@@ -24,6 +24,14 @@
       "inline": [
         "sleep 20",
         "chmod +x {{user `script`}}",
+        "sudo ./provision.sh kernel",
+        "sleep 60"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sleep 20",
         "sudo ./provision.sh",
         "rm -rf {{user `script`}}"
       ]

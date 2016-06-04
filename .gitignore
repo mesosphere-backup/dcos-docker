@@ -2,6 +2,8 @@ dcos_generate_config.ee.sh
 dcos_generate_config*.sh
 genconf/config.yaml
 genconf/ssh_key
+genconf/pgp_keys/
+genconf/pgp_private_keys/
 genconf/serve/
 include
 .path
@@ -12,3 +14,4 @@ genconf/cluster_packages.json
 packer_cache
 *.box
 output-virtualbox-ovf
+tmp/

@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build build-all start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
+.PHONY: all build build-all gpg gpg-list-keys start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
 
 # Set the number of DC/OS masters.
 MASTERS := 1
@@ -17,7 +17,7 @@ MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
 DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
-DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
+DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.ee.sh
 BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
@@ -36,11 +36,22 @@ SSH_DIR := $(CURDIR)/include/ssh
 SSH_ALGO := rsa
 SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
+# Variables for the gpg keys that will be generated to encrypt the DC/OS secret
+# master key shards.
+SECRET_SHARES := 5
+SECRET_THRESHOLD := 3
+PGP_DIR := $(CURDIR)/include/gnupg
+PGP_SECRING := $(PGP_DIR)/dcos.sec
+PGP_PUBRING := $(PGP_DIR)/dcos.public
+PGP_CONFIG_FILE := $(PGP_DIR)/dcos
+PGP_CMD_PREFIX := gpg --no-default-keyring \
+	--secret-keyring $(PGP_SECRING) \
+	--keyring $(PGP_PUBRING)
+
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
 # Variables for various docker arguments.
-MASTER_MOUNTS :=
 SYSTEMD_MOUNTS := \
 	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
 VOLUME_MOUNTS := \
@@ -89,10 +100,25 @@ $(SSH_KEY): $(SSH_DIR)
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
+$(PGP_DIR):
+	@mkdir -p $@
+
+$(PGP_CONFIG_FILE): $(PGP_DIR)
+	@$(foreach NUM,$(shell seq 1 $(SECRET_SHARES)),$(call generate_pgp_config_file,$(NUM)))
+
+gpg: $(PGP_CONFIG_FILE)
+	@sudo rngd -r /dev/urandom > /dev/null 2>&1 || true
+	cd $(PGP_DIR) && gpg --batch --gen-key dcos
+	$(foreach NUM,$(shell seq 1 $(SECRET_SHARES)),$(call generate_pgp_key,$(NUM)))
+
+gpg-list-keys: ## List the gpg keys in the dcos-docker gpg keyring.
+	@$(PGP_CMD_PREFIX) \
+	--list-keys
+
 start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
 
 master: ## Starts the containers for DC/OS masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
@@ -100,7 +126,6 @@ $(MESOS_SLICE):
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
-##
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl $(DCOS_GENERATE_CONFIG_URL) > $@
@@ -220,7 +245,11 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) $(CURDIR)/genconf/ssh_key
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
+	$(RM) -r $(PGP_DIR)
 	$(RM) -r $(SERVICE_DIR)
+	$(RM) -r $(CURDIR)/genconf/serve
+	$(RM) -r $(CURDIR)/genconf/state
+	$(RM) $(CURDIR)/cluster_packages.json
 	$(RM) dcos-genconf.*.tar
 	$(RM) *.box
 
@@ -233,13 +262,15 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 define start_dcos_container
 echo "+ Starting DC/OS container: $(1)$(2)";
 docker run -dt --privileged \
+	-v $(PWD)/tmp/opt/mesosphere:/opt/mesosphere.new:ro \
 	$(3) \
 	--name $(1)$(2) \
 	-e "container=$(1)$(2)" \
 	--hostname $(1)$(2) \
 	--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
 	$(DOCKER_IMAGE);
-sleep 2;
+#sleep 2;
+docker exec $(1)$(2) cp -a /opt/mesosphere.new /opt/mesosphere;
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
@@ -250,7 +281,7 @@ endef
 # @param role	DC/OS role of the container
 define run_dcos_install_in_container
 echo "+ Starting dcos_install.sh $(3) container: $(1)$(2)";
-docker exec $(1)$(2) /bin/bash $(BOOTSTRAP_TMP_PATH)/dcos_install.sh --no-block-dcos-setup $(3);
+docker exec $(1)$(2) /bin/bash $(BOOTSTRAP_TMP_PATH)/dcos_install.sh --no-block-dcos-setup --disable-preflight $(3);
 endef
 
 # Define the function for moving the generated certs to the location for the IP
@@ -291,6 +322,29 @@ TimeoutStartSec=0
 WantedBy=default.target
 endef
 
+# Define the function for generating the unattended GPG key generation config
+# file.
+define generate_pgp_config_file
+echo -e "%echo Generating an OpenPGP key for crash$(1)@override.com\n\
+Key-Type: 1\n\
+Key-Length: 4096\n\
+Name-Real: DC/OS Operator\n\
+Name-Email: crash$(1)@override.com\n\
+Expire-Date: 0\n\
+%pubring dcos.public\n\
+%secring dcos.sec\n\
+%commit\n" >> $(PGP_CONFIG_FILE);
+endef
+
+# Define the function for generating a GPG key for the number of secret shares.
+# @param num	  The shard number for the key.
+define generate_pgp_key
+$(PGP_CMD_PREFIX) \
+	--export --armor crash$(1)@override.com > $(PGP_DIR)/crash$(1).pub;
+$(PGP_CMD_PREFIX) \
+	--export-secret-keys --armor crash$(1)@override.com > $(PGP_DIR)/crash$(1).key;
+endef
+
 # Define the template for genconf/config.yaml, this makes sure the correct IPs
 # of the specific containers get populated correctly.
 
@@ -315,5 +369,10 @@ ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
+bootstrap_secrets: 'true'
+httpauth_enabled: 'true'
+zk_super_creds: super:secret
+zk_master_creds: dcos_master:secret1
+zk_agent_creds: dcos_agent:secret2
 $(EXTRA_GENCONF_CONFIG)
 endef
