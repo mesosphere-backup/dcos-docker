@@ -49,8 +49,8 @@ VOLUME_MOUNTS := \
 BOOTSTRAP_VOLUME_MOUNT := \
 	-v $(BOOTSTRAP_GENCONF_PATH):$(BOOTSTRAP_TMP_PATH):ro
 TMPFS_MOUNTS := \
-	--tmpfs /run:rw \
-	--tmpfs /tmp:rw
+	--tmpfs /run:rw,exec,nosuid,size=2097152k \
+	--tmpfs /tmp:rw,exec,nosuid,size=2097152k
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 HOME_MOUNTS := \
