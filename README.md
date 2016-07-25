@@ -75,7 +75,7 @@ host$ curl http://172.18.0.2
 
 To do the same on Mac OS X you can use:
 ```console
-host$ sudo route -nv -net 172.18.0.0/16 192.168.65.50
+host$ sudo route -nv add -net 172.18.0.0/16 192.168.65.50
 ```
 
 To SSH directly to the container you can use:
