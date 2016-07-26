@@ -61,9 +61,9 @@ for version in "${versions[@]}"; do
 	xz-utils
 	)
 
-	# add libselinux-utils for centos, fedora & rhel
+	# add packages for centos, fedora & rhel
 	case "$distro" in
-		centos|fedora|rhel) packages+=( libselinux-utils );;
+		centos|fedora|rhel) packages+=( libselinux-utils bind-utils );;
 		*) ;;
 	esac
 

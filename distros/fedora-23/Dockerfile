@@ -4,7 +4,7 @@
 
 FROM fedora:23
 
-RUN dnf install -y  bash-completion btrfs-progs curl ca-certificates which git iproute ipset iptables iputils libcgroup  nano net-tools openssh-clients openssh-server sudo systemd tar tree unzip vim-minimal xz libselinux-utils \
+RUN dnf install -y  bash-completion btrfs-progs curl ca-certificates which git iproute ipset iptables iputils libcgroup  nano net-tools openssh-clients openssh-server sudo systemd tar tree unzip vim-minimal xz libselinux-utils bind-utils \
 && ( \
 cd /lib/systemd/system/sysinit.target.wants/; \
 for i in *; do \
