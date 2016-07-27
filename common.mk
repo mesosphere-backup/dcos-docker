@@ -8,6 +8,7 @@ SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm
 # Variables for the resulting container & image names.
 MASTER_CTR:= dcos-docker-master
 AGENT_CTR := dcos-docker-agent
+PUBLIC_AGENT_CTR := dcos-docker-pubagent
 INSTALLER_CTR := dcos-docker-installer
 DOCKER_IMAGE := mesosphere/dcos-docker
 
@@ -43,8 +44,10 @@ help: ## Generate the Makefile help
 ips: ## Gets the ips for the currently running containers.
 	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call exit_not_running_container,$(MASTER_CTR),$(NUM)))
 	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call exit_not_running_container,$(AGENT_CTR),$(NUM)))
+	@$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call exit_not_running_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
+	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call get_public_agent_ips,$(NUM)))
 
 # Helper definitions.
 null :=
@@ -68,6 +71,10 @@ endef
 # @param number	  ID of the container.
 define get_agent_ips
 $(eval AGENT_IPS := $(AGENT_IPS) $(shell $(IP_CMD) $(AGENT_CTR)$(1)))
+endef
+
+define get_public_agent_ips
+$(eval PUBLIC_AGENT_IPS := $(PUBLIC_AGENT_IPS) $(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)$(1)))
 endef
 
 # Define the function to exit if a container is not running.
