@@ -1,13 +1,16 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build build-all start master agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
+.PHONY: all build build-all start master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
 
 # Set the number of DC/OS masters.
 MASTERS := 1
 
 # Set the number of DC/OS agents.
 AGENTS := 1
+
+# Set the number of DC/OS public agents.
+PUBLIC_AGENTS := 1
 
 # Distro to test against
 DISTRO := centos-7
@@ -61,6 +64,7 @@ all: install info ## Runs a full deploy of DC/OS in containers.
 info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
+	@echo "Public Agent IP:  $(PUBLIC_AGENT_IPS)"
 	@echo "DC/OS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
 
 open-browser: ips ## Opens your browser to the master ip.
@@ -89,7 +93,7 @@ $(SSH_KEY): $(SSH_DIR)
 $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
-start: build clean-certs $(CERTS_DIR) clean-containers master agent installer
+start: build clean-certs $(CERTS_DIR) clean-containers master agent public_agent installer
 
 master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
@@ -100,7 +104,9 @@ $(MESOS_SLICE):
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
-##
+
+public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
+	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl $(DCOS_GENERATE_CONFIG_URL) > $@
@@ -191,6 +197,8 @@ install: genconf ## Install DC/OS using "advanced" method
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call run_dcos_install_in_container,$(MASTER_CTR),$(NUM),master))
 	@echo "+ Running dcos_install.sh on agents"
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call run_dcos_install_in_container,$(AGENT_CTR),$(NUM),slave))
+	@echo "+ Running dcos_install.sh on public agents"
+	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call run_dcos_install_in_container,$(PUBLIC_AGENT_CTR),$(NUM),slave_public))
 
 web: preflight ## Run the DC/OS installer with --web.
 	@echo "+ Running web"
@@ -201,8 +209,9 @@ clean-certs: ## Remove all the certs generated for the registry.
 
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
-	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
-	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
+	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
+	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
+	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
 	@sudo systemctl stop mesos_executors.slice
@@ -301,6 +310,8 @@ define CONFIG_BODY
 ---
 agent_list:
 - $(subst ${space},${newline} ,$(AGENT_IPS))
+public_agent_list:
+- $(subst ${space},${newline} ,$(PUBLIC_AGENT_IPS))
 bootstrap_url: file://$(BOOTSTRAP_TMP_PATH)
 cluster_name: DCOS
 exhibitor_storage_backend: static
