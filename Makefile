@@ -233,6 +233,12 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) dcos-genconf.*.tar
 	$(RM) *.box
 
+test: ## executes the test script on a master
+	@docker exec -it $(MASTER_CTR)1 \
+		-e DCOS_PYTEST_DIR=$(DCOS_PYTEST_DIR) \
+		-e DCOS_PYTEST_CMD=$(DCOS_PYTEST_CMD) \
+		bash /opt/mesosphere/active/dcos-integration-test/run_integration_test.sh
+
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
 # successfully.
