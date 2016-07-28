@@ -12,6 +12,8 @@ AGENTS := 1
 # Set the number of DC/OS public agents.
 PUBLIC_AGENTS := 1
 
+ALL_AGENTS := $(shell echo $(PUBLIC_AGENTS)+$(AGENTS) | bc)
+
 # Distro to test against
 DISTRO := centos-7
 MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
@@ -234,10 +236,11 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) *.box
 
 test: ## executes the test script on a master
-	@docker exec -it $(MASTER_CTR)1 \
-		-e DCOS_PYTEST_DIR=$(DCOS_PYTEST_DIR) \
-		-e DCOS_PYTEST_CMD=$(DCOS_PYTEST_CMD) \
-		bash /opt/mesosphere/active/dcos-integration-test/run_integration_test.sh
+	@docker exec -it \
+		$(MASTER_CTR)1 \
+		/bin/bash -x -c "\
+			cd /opt/mesosphere/active/dcos-integration-test/ && \
+			/bin/bash ./run_integration_test.sh"
 
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
@@ -251,6 +254,10 @@ docker run -dt --privileged \
 	$(3) \
 	--name $(1)$(2) \
 	-e "container=$(1)$(2)" \
+	-e DCOS_PYTEST_DIR=$(DCOS_PYTEST_DIR) \
+	-e DCOS_PYTEST_CMD=$(DCOS_PYTEST_CMD) \
+	-e DCOS_NUM_AGENTS=$(ALL_AGENTS) \
+	-e DCOS_NUM_MASTERS=$(MASTERS) \
 	--hostname $(1)$(2) \
 	--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
 	$(DOCKER_IMAGE);
