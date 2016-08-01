@@ -4,7 +4,34 @@
 
 FROM debian:jessie
 
-RUN apt-get update && apt-get install -y aufs-tools bash-completion btrfs-tools curl ca-certificates debianutils git iproute ipset iptables iputils-ping libcgroup-dev libpopt0 nano net-tools openssh-client openssh-server sudo systemd tar tree unzip vim-nox xz-utils gawk --no-install-recommends && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update \
+    && apt-get install -y \
+        aufs-tools \
+        bash-completion \
+        btrfs-tools \
+        ca-certificates \
+        curl \
+        debianutils \
+        gawk \
+        git \
+        iproute \
+        ipset \
+        iptables \
+        iputils-ping \
+        libcgroup-dev \
+        libpopt0 \
+        nano \
+        net-tools \
+        openssh-client \
+        openssh-server \
+        sudo \
+        systemd \
+        tar \
+        tree \
+        unzip \
+        vim-nox \
+        xz-utils \
+    && rm -rf /var/lib/apt/lists/* \
 && ( \
 cd /lib/systemd/system/sysinit.target.wants/; \
 for i in *; do \
