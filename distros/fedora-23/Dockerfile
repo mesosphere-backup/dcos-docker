@@ -5,30 +5,30 @@
 FROM fedora:23
 
 RUN dnf install -y \
-       bash-completion \
-       bind-utils \
-       btrfs-progs \
-       ca-certificates \
-       curl \
-       git \
-       iproute \
-       ipset \
-       iptables \
-       iputils \
-       libcgroup \
-       libselinux-utils \
-       nano \
-       net-tools \
-       openssh-clients \
-       openssh-server \
-       sudo \
-       systemd \
-       tar \
-       tree \
-       unzip \
-       vim \
-       which \
-       xz \
+	   bash-completion \
+	   bind-utils \
+	   btrfs-progs \
+	   ca-certificates \
+	   curl \
+	   git \
+	   iproute \
+	   ipset \
+	   iptables \
+	   iputils \
+	   libcgroup \
+	   libselinux-utils \
+	   nano \
+	   net-tools \
+	   openssh-clients \
+	   openssh-server \
+	   sudo \
+	   systemd \
+	   tar \
+	   tree \
+	   unzip \
+	   vim \
+	   which \
+	   xz \
 && ( \
 cd /lib/systemd/system/sysinit.target.wants/; \
 for i in *; do \
