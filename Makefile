@@ -12,7 +12,7 @@ AGENTS := 1
 # Set the number of DC/OS public agents.
 PUBLIC_AGENTS := 1
 
-ALL_AGENTS := $(shell echo $(PUBLIC_AGENTS)+$(AGENTS) | bc)
+ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
 
 # Distro to test against
 DISTRO := centos-7
