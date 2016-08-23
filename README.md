@@ -45,12 +45,8 @@ web                            Run the DC/OS installer with --web.
 Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/).
 
 ```console
-# everything will work a lot better if you keep the guest additions in sync
+# (optional) auto-update vbox additions (default box has them pre-installed)
 host$ vagrant plugin install vagrant-vbguest
-
-# configure networking
-host$ VBoxManage list hostonlyifs | grep vboxnet0 -q || VBoxManage hostonlyif create
-host$ VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.65.1
 
 # bring up the virtual machine
 host$ vagrant up
@@ -65,22 +61,23 @@ vagrant@dcos-docker$ cd /vagrant
 vagrant@dcos-docker$ make
 ```
 
-To make the Docker containers in the VM reachable from the host, you can run the
-following on Linux on the host:
+To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`):
+
+On **Linux**:
 ```console
-host$ sudo ip route replace 172.18.0.0/16 via 192.168.65.50
-host$ ping 172.18.0.2 #ping DC/OS master after cluster is up
-host$ curl http://172.18.0.2
+host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
+host$ ping 172.17.0.2 #ping DC/OS master after cluster is up
+host$ curl http://172.17.0.2
 ```
 
-To do the same on Mac OS X you can use:
+On **Mac OS X**:
 ```console
-host$ sudo route -nv add -net 172.18.0.0/16 192.168.65.50
+host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
 ```
 
 To SSH directly to the container you can use:
 ```console
-host$ ssh -i genconf/ssh_key root@172.18.0.2
+host$ ssh -i genconf/ssh_key root@172.17.0.2
 ```
 
 ### Graphdriver/Storage driver
