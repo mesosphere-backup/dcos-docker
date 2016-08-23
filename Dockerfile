@@ -22,6 +22,8 @@ COPY include/systemd/docker.service /lib/systemd/system/
 RUN systemctl enable docker.service \
 	&& systemctl enable sshd.service || true
 
+COPY include/sbin/dcos-postflight /usr/local/sbin/
+
 COPY genconf /genconf
 COPY include/ssh /root/.ssh
 RUN cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys

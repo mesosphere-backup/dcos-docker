@@ -28,6 +28,9 @@ BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
+SBIN_DIR := $(CURDIR)/include/sbin
+DCOS_POSTFLIGHT_FILE := $(SBIN_DIR)/dcos-postflight
+
 # Variables for the certs for a registry on the first master node.
 CERTS_DIR := $(CURDIR)/include/certs
 ROOTCA_CERT := $(CERTS_DIR)/cacert.pem
@@ -67,12 +70,13 @@ info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "Public Agent IP:  $(PUBLIC_AGENT_IPS)"
-	@echo "DC/OS has been started, open http://$(firstword $(MASTER_IPS)) in your browser."
+	@echo "Web UI: http://$(firstword $(MASTER_IPS))"
+	@echo "DC/OS node setup in progress. Run `make postflight` to block until they are ready."
 
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
 
-build: generate $(DOCKER_SERVICE_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
+build: generate $(DOCKER_SERVICE_FILE) $(DCOS_POSTFLIGHT_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
 	@echo "+ Building the $(DISTRO) base image"
 	@$(foreach distro,$(wildcard distros/$(DISTRO)*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
 	@echo "+ Building the dcos-docker image"
@@ -96,6 +100,9 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 	@cp $(SSH_KEY) $@
 
 start: build clean-certs $(CERTS_DIR) clean-containers master agent public_agent installer
+
+postflight: ## Polls DC/OS until it is healthy (5m timeout)
+	@docker exec -it $(MASTER_CTR)1 dcos-postflight
 
 master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
@@ -125,6 +132,14 @@ $(SERVICE_DIR):
 $(DOCKER_SERVICE_FILE): $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
 	$(eval export DOCKER_SERVICE_BODY)
 	echo "$$DOCKER_SERVICE_BODY" > $@
+
+$(SBIN_DIR):
+	@mkdir -p $@
+
+export DCOS_POSTFLIGHT_BODY
+$(DCOS_POSTFLIGHT_FILE): $(SBIN_DIR) ## Writes the dc/os postflight script to verify installation.
+	@echo "$$DCOS_POSTFLIGHT_BODY" > $@
+	@chmod +x $@
 
 $(CERTS_DIR):
 	@mkdir -p $@
@@ -225,9 +240,9 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) $(CURDIR)/genconf/ssh_key
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
-	$(RM) -r $(SERVICE_DIR)
+	$(RM) -r $(SBIN_DIR)
 	$(RM) dcos-genconf.*.tar
-	$(RM) *.box
+	$(RM) *.box #TODO: remove
 
 test: ## executes the test script on a master
 	@docker exec -it \
@@ -334,4 +349,45 @@ ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
 $(EXTRA_GENCONF_CONFIG)
+endef
+
+# Define the postflight script to wait until DC/OS is up and running
+define DCOS_POSTFLIGHT_BODY
+#!/usr/bin/env bash
+# Run the DC/OS diagnostic script for up to the specified number of seconds to ensure
+# we do not return ERROR on a cluster that hasn't fully achieved quorum.
+TIMEOUT_SECONDS="$${1:-900}"
+function await() {
+    until OUT=$$($${CMD} 2>&1) || [[ TIMEOUT_SECONDS -eq 0 ]]; do
+        sleep 5
+        let TIMEOUT_SECONDS=TIMEOUT_SECONDS-5
+    done
+    RETCODE=$$?
+    if [[ "$${RETCODE}" != "0" ]]; then
+        echo "DC/OS Unhealthy\\n\$${OUT}" >&2
+        exit $${RETCODE}
+    fi
+}
+CMD="curl --fail --location --max-redir 0 --silent http://127.0.0.1/"
+echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
+await
+if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
+    # DC/OS >= 1.7
+    CMD="/opt/mesosphere/bin/3dt -diag"
+    cfg_files=( /opt/mesosphere/packages/3dt*/endpoints_config.json )
+    if [ $${#cfg_files[@]} -gt 0 ]; then
+        # DC/OS >= 1.8
+        # TODO: what if there's more than one? Which should we choose?
+        CMD="$${CMD} -endpoint-config=$${cfg_files[0]}"
+    fi
+elif [[ -e "/opt/mesosphere/bin/dcos-diagnostics.py" ]]; then
+    # DC/OS <= 1.6
+    CMD="/opt/mesosphere/bin/dcos-diagnostics.py"
+else
+    echo "Postflight Failure: either 3dt or dcos-diagnostics.py must be present"
+    exit 1
+fi
+echo "Polling component status ($${TIMEOUT_SECONDS}s timeout)..." >&2
+await
+echo "DC/OS Healthy" >&2
 endef
