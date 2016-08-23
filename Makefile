@@ -71,7 +71,7 @@ info: ips ## Provides information about the master and agent's ips.
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "Public Agent IP:  $(PUBLIC_AGENT_IPS)"
 	@echo "Web UI: http://$(firstword $(MASTER_IPS))"
-	@echo "DC/OS node setup in progress. Run `make postflight` to block until they are ready."
+	@echo "DC/OS node setup in progress. Run 'make postflight' to block until they are ready."
 
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
