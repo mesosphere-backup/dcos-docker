@@ -4,7 +4,7 @@ Run DC/OS with systemd and docker in two containers.
 
 ### Requirements
 
-- A Linux machine with systemd, make, and docker 1.10 installed. You need a
+- A Linux machine with systemd, make, and docker 1.11 installed. You need a
   kernel that is _not_ a franken kernel.
 
 - Alternatively, you can use VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
