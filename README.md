@@ -117,12 +117,6 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
-#### Rebuilding the Vagrant box base with Packer
-
-```console
-$ packer build packer.json
-```
-
 ### Troubleshooting
 
 Oh dear, you must be in an unfortunate position. You have a few options with
