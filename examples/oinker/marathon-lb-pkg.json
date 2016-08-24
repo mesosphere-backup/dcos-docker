@@ -1,0 +1,6 @@
+{
+  "marathon-lb": {
+    "mem": 256,
+    "sysctl-params": "net.core.somaxconn=10000"
+  }
+}
