@@ -1,6 +1,13 @@
-## dcos-docker
+## DC/OS Docker
 
-Run DC/OS with systemd and docker in two containers.
+Run DC/OS (including systemd) in Docker containers, one per node, using Docker-in-Docker for DC/OS services/jobs.
+
+DC/OS Docker is designed to optimize developer cycle time. For a more production-like local experience, see [DC/OS Vagrant](https://github.com/dcos/dcos-vagrant) which runs each node in its own VM.
+
+## Caveats
+
+- Because of Docker-in-Docker, DC/OS services (like Jenkins) that themselves use Docker-in-Docker may not work correctly.
+- Because containerization does not affect resource detection tools, each DC/OS node will think it can allocate all of the host's resources, leading to over-subscription without protection. You are still bound by the disk and memory constraints of the host, even if DC/OS thinks you have N (number of agent nodes) times more. Running Docker in a VM can protect your host from this and allows you to designate how much disk/memory/cpu DC/OS gets in total. Running Docker directly on a Linux host gives DC/OS more resources to play with but may also freeze your machine if you run too many DC/OS services/jobs.
 
 ## Requirements
 
