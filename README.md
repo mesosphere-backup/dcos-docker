@@ -2,87 +2,107 @@
 
 Run DC/OS with systemd and docker in two containers.
 
-### Requirements
+## Requirements
 
-- A Linux machine with systemd, make, and docker 1.11 installed. You need a
-  kernel that is _not_ a franken kernel.
+### Linux
 
-- Alternatively, you can use VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
+- systemd
+- make
+- Docker 1.11
+- A recent kernel that supports Overlay FS
+- git
 
-## Quick Start
+### Mac
 
-1. Put a `dcos_generate_config.sh` in the root of this directory.
+- VirtualBox 5.0.18 or later
+- Vagrant 1.8.1 or later
+- git
 
-2. From this directory run `make`.
+## Setup
 
-**Makefile usage:**
+**The following steps are REQUIRED on all hosts.**
 
-```console
-$ make help
-all                            Runs a full deploy of DC/OS in containers.
-agent                          Starts the containers for DC/OS agents.
-build-all                      Build the Dockerfiles for all the various distros.
-build                          Build the docker image that will be used for the containers.
-clean-certs                    Remove all the certs generated for the registry.
-clean                          Stops all containers and removes all generated files for the cluster.
-clean-containers               Removes and cleans up the master, agent, and installer containers.
-clean-slice                    Removes and cleanups up the systemd slice for the mesos executor.
-deploy                         Run the DC/OS installer with --deploy.
-genconf                        Run the DC/OS installer with --genconf.
-generate                       generate the Dockerfiles for all the distros.
-info                           Provides information about the master and agent's ips.
-installer                      Starts the container for the DC/OS installer.
-install                        Install DC/OS using "advanced" method
-master                         Starts the containers for DC/OS masters.
-open-browser                   Opens your browser to the master ip.
-preflight                      Run the DC/OS installer with --preflight.
-registry                       Start a docker registry with certs in the mesos master.
-web                            Run the DC/OS installer with --web.
-```
+1. Clone this repo
 
-### VirtualBox/Vagrant
+    ```
+    git clone https://github.com/dcos/dcos-docker
+    cd dcos-docker
+    ```
 
-Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/).
+1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/)
+1. Move the installer to `dcos_generate_config.sh` in the root of this repo directory.
 
-```console
-# (optional) auto-update vbox additions (default box has them pre-installed)
-host$ vagrant plugin install vagrant-vbguest
+**The following steps are OPTIONAL on Linux hosts.**
 
-# bring up the virtual machine
-host$ vagrant up
+1. Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+1. Install [Vagrant](https://www.vagrantup.com/)
+1. (Optional) Install vagrant-vbguest plugin (auto-updates vbox additions)
 
-# ssh into the vagrant box
-host$ vagrant ssh
+    ```console
+    vagrant plugin install vagrant-vbguest
+    ```
 
-# the directory for this repo is in /vagrant in the VM
-vagrant@dcos-docker$ cd /vagrant
+1. Bring up the virtual machine
 
-# now run make
-vagrant@dcos-docker$ make
-```
+    ```console
+    vagrant up
+    ```
+
+1. SSH into the virtual machine
+
+    ```console
+    vagrant ssh
+    ```
+
+1. Change into the mounted repo directory
+
+    ```console
+    cd /vagrant
+    ```
+
+## Deploy
+
+1. Deploy DC/OS in Docker
+
+    ```console
+    make
+    ```
+
+1. (Optional) Wait for DC/OS to come up
+
+    ```console
+    make postflight
+    ```
+
+For other make commands, see `make help`.
+
+## Network Routing
 
 To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`):
 
-On **Linux**:
-```console
-host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
-host$ ping 172.17.0.2 #ping DC/OS master after cluster is up
-host$ curl http://172.17.0.2
-```
+1. Setup routing
 
-On **Mac OS X**:
-```console
-host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
-```
+    On **Linux**:
+    ```console
+    host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
+    host$ ping 172.17.0.2 #ping DC/OS master after cluster is up
+    host$ curl http://172.17.0.2
+    ```
 
-To SSH directly to the container you can use:
-```console
-host$ ssh -i genconf/ssh_key root@172.17.0.2
-```
+    On **Mac OS X**:
+    ```console
+    host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
+    ```
 
-### Graphdriver/Storage driver
+1. SSH directly into a container
 
-There is no requiremnt on the hosts storage driver type, but the docker daemon
+    ```console
+    host$ ssh -i genconf/ssh_key root@172.17.0.2
+    ```
+
+## Graphdriver/Storage driver
+
+There is no requirement on the hosts storage driver type, but the docker daemon
 running inside docker container supports only `aufs` and `overlay`. The loopback
 devicemapper may be problematic when it comes to loopback devices - they may not
 be properly cleaned up and thus prevent docker daemon from starting. YMMV
@@ -93,9 +113,9 @@ the script tries to use the same one as the host uses. It detects it using
 `docker info` command. The resulting graphdriver must be among supported ones,
 or the script will terminate.
 
-### Settings
+## Settings
 
-#### Changing the number of masters or agents
+### Changing the number of masters or agents
 
 This defaults to 1 master and 1 agent. You can change the number of masters by
 setting the variable `MASTERS`. You can change the number of agents by setting
@@ -106,7 +126,7 @@ $ make MASTERS=3 AGENTS=5
 # start a cluster with 3 masters and 5 agents
 ```
 
-#### Changing the distro
+### Changing the distro
 
 > **NOTE:** This feature should only be used for testing, it is unstable.
 
@@ -117,7 +137,7 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
-### Troubleshooting
+## Troubleshooting
 
 Oh dear, you must be in an unfortunate position. You have a few options with
 regard to debugging your container cluster.
