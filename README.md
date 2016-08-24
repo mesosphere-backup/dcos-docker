@@ -42,6 +42,16 @@ Run DC/OS with systemd and docker in two containers.
     vagrant plugin install vagrant-vbguest
     ```
 
+1. (Optional) Resize the vagrant disk
+
+    DC/OS should deploy with the default disk size of 10GB, but for larger deployments you may need to increase the size of the VM.
+
+    The first argument is the desired disk size in MB (ex: 102400 is 100GB).
+
+    ```console
+    vagrant/resize-disk.sh 102400
+    ```
+
 1. Bring up the virtual machine
 
     ```console
