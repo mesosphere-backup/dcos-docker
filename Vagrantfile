@@ -1,9 +1,9 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-$dcos_box = ENV.fetch("DCOS_BOX", "mesosphere/dcos-centos-virtualbox")
-$dcos_box_url = ENV.fetch("DCOS_BOX_URL", "http://downloads.dcos.io/dcos-vagrant/metadata.json")
-$dcos_box_version = ENV.fetch("DCOS_BOX_VERSION", nil)
+$dcos_box = ENV.fetch('DCOS_BOX', 'mesosphere/dcos-centos-virtualbox')
+$dcos_box_url = ENV.fetch('DCOS_BOX_URL', 'http://downloads.dcos.io/dcos-vagrant/metadata.json')
+$dcos_box_version = ENV.fetch('DCOS_BOX_VERSION', '~> 0.7.0')
 
 # configure vbox host-only network
 system('./vagrant/vbox-network.sh')
@@ -23,7 +23,7 @@ Vagrant.configure(2) do |config|
     vm_cfg.vm.network :private_network, ip: '192.168.65.50'
     config.vm.synced_folder '.', '/vagrant', type: :virtualbox
 
-    vm_cfg.vm.provider "virtualbox" do |v|
+    vm_cfg.vm.provider :virtualbox do |v|
       v.name = vm_cfg.vm.hostname
       v.cpus = 2
       v.memory = 8192
