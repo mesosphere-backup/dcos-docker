@@ -71,7 +71,6 @@ info: ips ## Provides information about the master and agent's ips.
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "Public Agent IP:  $(PUBLIC_AGENT_IPS)"
 	@echo "Web UI: http://$(firstword $(MASTER_IPS))"
-	@echo "DC/OS node setup in progress. Run 'make postflight' to block until they are ready."
 
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
@@ -218,6 +217,7 @@ install: genconf ## Install DC/OS using "advanced" method
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call run_dcos_install_in_container,$(AGENT_CTR),$(NUM),slave))
 	@echo "+ Running dcos_install.sh on public agents"
 	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call run_dcos_install_in_container,$(PUBLIC_AGENT_CTR),$(NUM),slave_public))
+	@echo "DC/OS node setup in progress. Run 'make postflight' to block until they are ready."
 
 web: preflight ## Run the DC/OS installer with --web.
 	@echo "+ Running web"
