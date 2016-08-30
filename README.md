@@ -1,91 +1,125 @@
-## dcos-docker
+## DC/OS Docker
 
-Run DC/OS with systemd and docker in two containers.
+Run DC/OS (including systemd) in Docker containers, one per node, using Docker-in-Docker for DC/OS services/jobs.
 
-### Requirements
+DC/OS Docker is designed to optimize developer cycle time. For a more production-like local experience, see [DC/OS Vagrant](https://github.com/dcos/dcos-vagrant) which runs each node in its own VM.
 
-- A Linux machine with systemd, make, and docker 1.10 installed. You need a
-  kernel that is _not_ a franken kernel.
+## Caveats
 
-- Alternatively, you can use VirtualBox 5.0.18 and Vagrant 1.8.1 or later.
+- Because of Docker-in-Docker, DC/OS services (like Jenkins) that themselves use Docker-in-Docker may not work correctly.
+- Because containerization does not affect resource detection tools, each DC/OS node will think it can allocate all of the host's resources, leading to over-subscription without protection. You are still bound by the disk and memory constraints of the host, even if DC/OS thinks you have N (number of agent nodes) times more. Running Docker in a VM can protect your host from this and allows you to designate how much disk/memory/cpu DC/OS gets in total. Running Docker directly on a Linux host gives DC/OS more resources to play with but may also freeze your machine if you run too many DC/OS services/jobs.
 
-## Quick Start
+## Requirements
 
-1. Put a `dcos_generate_config.sh` in the root of this directory.
+### Linux
 
-2. From this directory run `make`.
+- systemd
+- make
+- Docker 1.11
+- A recent kernel that supports Overlay FS
+- git
 
-**Makefile usage:**
+### Mac
 
-```console
-$ make help
-all                            Runs a full deploy of DC/OS in containers.
-agent                          Starts the containers for DC/OS agents.
-build-all                      Build the Dockerfiles for all the various distros.
-build                          Build the docker image that will be used for the containers.
-clean-certs                    Remove all the certs generated for the registry.
-clean                          Stops all containers and removes all generated files for the cluster.
-clean-containers               Removes and cleans up the master, agent, and installer containers.
-clean-slice                    Removes and cleanups up the systemd slice for the mesos executor.
-deploy                         Run the DC/OS installer with --deploy.
-genconf                        Run the DC/OS installer with --genconf.
-generate                       generate the Dockerfiles for all the distros.
-info                           Provides information about the master and agent's ips.
-installer                      Starts the container for the DC/OS installer.
-install                        Install DC/OS using "advanced" method
-master                         Starts the containers for DC/OS masters.
-open-browser                   Opens your browser to the master ip.
-preflight                      Run the DC/OS installer with --preflight.
-registry                       Start a docker registry with certs in the mesos master.
-web                            Run the DC/OS installer with --web.
-```
+- VirtualBox 5.0.18 or later
+- Vagrant 1.8.1 or later
+- git
 
-### VirtualBox/Vagrant
+## Setup
 
-Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) and [Vagrant](https://www.vagrantup.com/).
+**The following steps are REQUIRED on all hosts.**
 
-```console
-# everything will work a lot better if you keep the guest additions in sync
-host$ vagrant plugin install vagrant-vbguest
+1. Clone this repo
 
-# configure networking
-host$ VBoxManage list hostonlyifs | grep vboxnet0 -q || VBoxManage hostonlyif create
-host$ VBoxManage hostonlyif ipconfig vboxnet0 --ip 192.168.65.1
+    ```
+    git clone https://github.com/dcos/dcos-docker
+    cd dcos-docker
+    ```
 
-# bring up the virtual machine
-host$ vagrant up
+1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/)
+1. Move the installer to `dcos_generate_config.sh` in the root of this repo directory.
 
-# ssh into the vagrant box
-host$ vagrant ssh
+**The following steps are OPTIONAL on Linux hosts.**
 
-# the directory for this repo is in /vagrant in the VM
-vagrant@dcos-docker$ cd /vagrant
+1. Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
+1. Install [Vagrant](https://www.vagrantup.com/)
+1. (Optional) Install vagrant-vbguest plugin (auto-updates vbox additions)
 
-# now run make
-vagrant@dcos-docker$ make
-```
+    ```console
+    vagrant plugin install vagrant-vbguest
+    ```
 
-To make the Docker containers in the VM reachable from the host, you can run the
-following on Linux on the host:
-```console
-host$ sudo ip route replace 172.18.0.0/16 via 192.168.65.50
-host$ ping 172.18.0.2 #ping DC/OS master after cluster is up
-host$ curl http://172.18.0.2
-```
+1. (Optional) Resize the vagrant disk
 
-To do the same on Mac OS X you can use:
-```console
-host$ sudo route -nv add -net 172.18.0.0/16 192.168.65.50
-```
+    DC/OS should deploy with the default disk size of 10GB, but for larger deployments you may need to increase the size of the VM.
 
-To SSH directly to the container you can use:
-```console
-host$ ssh -i genconf/ssh_key root@172.18.0.2
-```
+    The first argument is the desired disk size in MB (ex: 102400 is 100GB).
 
-### Graphdriver/Storage driver
+    ```console
+    vagrant/resize-disk.sh 102400
+    ```
 
-There is no requiremnt on the hosts storage driver type, but the docker daemon
+1. Bring up the virtual machine
+
+    ```console
+    vagrant up
+    ```
+
+1. SSH into the virtual machine
+
+    ```console
+    vagrant ssh
+    ```
+
+1. Change into the mounted repo directory
+
+    ```console
+    cd /vagrant
+    ```
+
+## Deploy
+
+1. Deploy DC/OS in Docker
+
+    ```console
+    make
+    ```
+
+1. (Optional) Wait for DC/OS to come up
+
+    ```console
+    make postflight
+    ```
+
+For other make commands, see `make help`.
+
+## Network Routing
+
+To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`):
+
+1. Setup routing
+
+    On **Linux**:
+    ```console
+    host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
+    host$ ping 172.17.0.2 #ping DC/OS master after cluster is up
+    host$ curl http://172.17.0.2
+    ```
+
+    On **Mac OS X**:
+    ```console
+    host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
+    ```
+
+1. SSH directly into a container
+
+    ```console
+    host$ ssh -i genconf/ssh_key root@172.17.0.2
+    ```
+
+## Graphdriver/Storage driver
+
+There is no requirement on the hosts storage driver type, but the docker daemon
 running inside docker container supports only `aufs` and `overlay`. The loopback
 devicemapper may be problematic when it comes to loopback devices - they may not
 be properly cleaned up and thus prevent docker daemon from starting. YMMV
@@ -96,9 +130,9 @@ the script tries to use the same one as the host uses. It detects it using
 `docker info` command. The resulting graphdriver must be among supported ones,
 or the script will terminate.
 
-### Settings
+## Settings
 
-#### Changing the number of masters or agents
+### Changing the number of masters or agents
 
 This defaults to 1 master and 1 agent. You can change the number of masters by
 setting the variable `MASTERS`. You can change the number of agents by setting
@@ -109,7 +143,7 @@ $ make MASTERS=3 AGENTS=5
 # start a cluster with 3 masters and 5 agents
 ```
 
-#### Changing the distro
+### Changing the distro
 
 > **NOTE:** This feature should only be used for testing, it is unstable.
 
@@ -120,13 +154,7 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
-#### Rebuilding the Vagrant box base with Packer
-
-```console
-$ packer build packer.json
-```
-
-### Troubleshooting
+## Troubleshooting
 
 Oh dear, you must be in an unfortunate position. You have a few options with
 regard to debugging your container cluster.
