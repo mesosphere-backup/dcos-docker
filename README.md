@@ -96,27 +96,57 @@ For other make commands, see `make help`.
 
 ## Network Routing
 
-To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`):
+To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`). This routing is not required if you deployed DC/OS to Docker on a native Linux host.
 
-1. Setup routing
+On **Linux**:
+```console
+host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
+```
 
-    On **Linux**:
-    ```console
-    host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
-    host$ ping 172.17.0.2 #ping DC/OS master after cluster is up
-    host$ curl http://172.17.0.2
-    ```
+On **Mac OS X**:
+```console
+host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
+```
 
-    On **Mac OS X**:
-    ```console
-    host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
-    ```
+Once routing is set up, you can access DC/OS directly from the host.
 
-1. SSH directly into a container
+### Network Routing Cleanup
 
-    ```console
-    host$ ssh -i genconf/ssh_key root@172.17.0.2
-    ```
+On **Linux**:
+```console
+host$ sudo ip route del 172.17.0.0/16
+```
+
+On **Mac OS X**:
+```console
+host$ sudo route delete 172.17.0.0/16
+```
+
+### Node Shell Access
+
+With network routing configured, you can SSH directly into DC/OS nodes from the host:
+
+```console
+host$ ssh -i genconf/ssh_key root@172.17.0.2
+```
+
+Or you could use the DC/OS CLI:
+
+```console
+dcos node ssh --leader --user=root --option IdentityFile=genconf/ssh_key
+```
+
+From the Linux host (or SSH'd into Vagrant) you can also use Docker exec to open a shell:
+
+```console
+$ docker ps --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
+CONTAINER ID        NAMES                   STATUS
+7498dcbe4e3e        dcos-docker-pubagent1   Up About a minute
+b66175f0a18a        dcos-docker-agent1      Up About a minute
+e80466ce71c9        dcos-docker-master1     Up About a minute
+
+$ docker exec -it dcos-docker-master1 bash
+```
 
 ## Graphdriver/Storage driver
 
