@@ -116,13 +116,15 @@ $(DCOS_GENERATE_CONFIG_PATH):
 installer: $(DCOS_GENERATE_CONFIG_PATH) ## Starts the container for the DC/OS installer.
 
 $(CONFIG_FILE): ips ## Writes the config file for the currently running containers.
-	$(file >$@,$(CONFIG_BODY))
+	$(eval export CONFIG_BODY)
+	echo "$$CONFIG_BODY" > $@
 
 $(SERVICE_DIR):
 	@mkdir -p $@
 
 $(DOCKER_SERVICE_FILE): $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
-	$(file >$@,$(DOCKER_SERVICE_BODY))
+	$(eval export DOCKER_SERVICE_BODY)
+	echo "$$DOCKER_SERVICE_BODY" > $@
 
 $(CERTS_DIR):
 	@mkdir -p $@
