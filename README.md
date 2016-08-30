@@ -8,6 +8,7 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 - Because of Docker-in-Docker, DC/OS services (like Jenkins) that themselves use Docker-in-Docker may not work correctly.
 - Because containerization does not affect resource detection tools, each DC/OS node will think it can allocate all of the host's resources, leading to over-subscription without protection. You are still bound by the disk and memory constraints of the host, even if DC/OS thinks you have N (number of agent nodes) times more. Running Docker in a VM can protect your host from this and allows you to designate how much disk/memory/cpu DC/OS gets in total. Running Docker directly on a Linux host gives DC/OS more resources to play with but may also freeze your machine if you run too many DC/OS services/jobs.
+- DC/OS 1.8.2 introduced [a bug](https://github.com/dcos/dcos/commit/3a793ac4d0275a1cff1d6af380148fa7153392f0) that makes it incompatible with dcos-docker. Use DC/OS 1.8.1 or master until 1.8.3 is released.
 
 ## Requirements
 
