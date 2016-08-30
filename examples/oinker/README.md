@@ -8,7 +8,7 @@ Use the following steps to install and access Oinker:
 
 1. Setup
 
-    See [Setup](/#setup).
+    See [Setup](/README.md#setup).
 
     **Linux:** Make sure your disk has at least 20GB free space for DC/OS Docker to use.
 
@@ -22,7 +22,7 @@ Use the following steps to install and access Oinker:
 
 1. Deploy DC/OS
 
-   See [Deploy](../../#deploy).
+   See [Deploy](/README.md#deploy).
 
    The default configuration of 1 master, 1 private agent, and 1 public agent should work as long as the host has enough memory and disk available. Vagrant VM memory is configurable in the Vagrantfile.
 
@@ -30,7 +30,7 @@ Use the following steps to install and access Oinker:
 
     **Linux:** No routing needed.
 
-    **Vagrant:** See [Network Routing](../../#network-routing).
+    **Vagrant:** See [Network Routing](/README.md#network-routing).
 
 1. Install DC/OS CLI
 
