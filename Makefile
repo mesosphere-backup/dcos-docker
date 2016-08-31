@@ -242,7 +242,7 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SBIN_DIR)
 	$(RM) dcos-genconf.*.tar
-	$(RM) *.box #TODO: remove
+	$(RM) *.box
 
 test: ## executes the test script on a master
 	@docker exec -it \
