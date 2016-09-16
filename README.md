@@ -40,7 +40,7 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/)
 1. Move the installer to `dcos_generate_config.sh` in the root of this repo directory.
 
-**The following steps are OPTIONAL on Linux hosts.**
+**The following steps are REQUIRED on Macs and OPTIONAL on Linux.**
 
 1. Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
 1. Install [Vagrant](https://www.vagrantup.com/)
