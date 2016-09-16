@@ -348,6 +348,7 @@ ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
+platform: docker
 check_time: false
 $(EXTRA_GENCONF_CONFIG)
 endef
