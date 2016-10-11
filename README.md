@@ -22,8 +22,8 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 ### Mac
 
-- VirtualBox 5.0.18 or later
-- Vagrant 1.8.1 or later
+- VirtualBox 5.0.x
+- Vagrant 1.8.4
 - git
 
 ## Setup
