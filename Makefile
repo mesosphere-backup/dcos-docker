@@ -101,7 +101,7 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 start: build clean-certs $(CERTS_DIR) clean-containers master agent public_agent installer
 
 postflight: ## Polls DC/OS until it is healthy (5m timeout)
-	@docker exec -it $(MASTER_CTR)1 dcos-postflight
+	@docker exec -i $(MASTER_CTR)1 dcos-postflight
 
 master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
