@@ -29,6 +29,8 @@ Vagrant.configure(2) do |config|
       v.memory = 8192
       # configure guest to use host DNS resolver
       v.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
+      # guest should sync time if more than 10s off host
+      v.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 1000 ]
     end
   end
 end
