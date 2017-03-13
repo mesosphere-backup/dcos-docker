@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all build build-all start postflight master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
+.PHONY: all vagrant build build-all start postflight master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
 
 # Set the number of DC/OS masters.
 MASTERS := 1
@@ -65,6 +65,10 @@ HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
 
 all: install info ## Runs a full deploy of DC/OS in containers.
+
+vagrant:
+	vagrant up
+	vagrant ssh -c 'cd /vagrant && make'
 
 info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
