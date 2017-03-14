@@ -30,5 +30,8 @@ Vagrant.configure(2) do |config|
       # configure guest to use host DNS resolver
       v.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
     end
+
+    # Change home directory of "vagrant" user to /vagrant
+    vm_cfg.vm.provision :shell, inline: "grep -q 'cd /vagrant' ~/.bash_profile || echo -e '\n[ -d /vagrant ] && cd /vagrant' >> ~/.bash_profile", privileged: false
   end
 end

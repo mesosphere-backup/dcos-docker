@@ -72,12 +72,6 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
     vagrant ssh
     ```
 
-1. Change into the mounted repo directory
-
-    ```console
-    cd /vagrant
-    ```
-
 ## Deploy
 
 1. Deploy DC/OS in Docker
