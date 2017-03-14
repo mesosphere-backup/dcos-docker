@@ -13,3 +13,4 @@ packer_cache
 *.box
 output-virtualbox-ovf
 .idea
+.dcos

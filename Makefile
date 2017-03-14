@@ -64,13 +64,24 @@ CERT_MOUNTS := \
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
 
-all: install info ## Runs a full deploy of DC/OS in containers.
+all: install dcos-cli-config info  ## Runs a full deploy of DC/OS in containers.
 
 info: ips ## Provides information about the master and agent's ips.
 	@echo "Master IP: $(MASTER_IPS)"
 	@echo "Agent IP:  $(AGENT_IPS)"
 	@echo "Public Agent IP:  $(PUBLIC_AGENT_IPS)"
 	@echo "Web UI: http://$(firstword $(MASTER_IPS))"
+
+dcos-cli-config: ips
+	curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python ;\
+	sudo pip install dcoscli ;\
+	if ! dcos config show core.dcos_url > /dev/null 2>&1; then \
+	    dcos config set core.dcos_url http://$(firstword $(MASTER_IPS)) ;\
+	fi ;\
+	echo "DCOS_CONFIG = $${DCOS_CONFIG}" ;\
+	dcos config show ;\
+	mkdir -p /vagrant/.dcos/ ;\
+	cp ~/.dcos/dcos.toml /vagrant/.dcos/
 
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
