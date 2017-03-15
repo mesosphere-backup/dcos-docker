@@ -8,10 +8,42 @@ $dcos_box_version = ENV.fetch('DCOS_BOX_VERSION', '~> 0.7.0')
 # configure vbox host-only network
 system('./vagrant/vbox-network.sh')
 
+def is_OS_X?
+  (/.*darwin.*/ === RUBY_PLATFORM)
+end
+
+def add_route
+  if is_OS_X?
+    system('sudo route -nv add -net 172.17.0.0/16 192.168.65.50')
+  else
+    # Linux
+    system('sudo ip route replace 172.17.0.0/16 via 192.168.65.50')
+  end
+end
+
+def delete_route
+  if is_OS_X?
+    system('sudo route delete 172.17.0.0/16')
+  else
+    # Linux
+    system('sudo ip route del 172.17.0.0/16')
+  end
+end
+
 Vagrant.configure(2) do |config|
   # configure vagrant-vbguest plugin
   if Vagrant.has_plugin?('vagrant-vbguest')
     config.vbguest.auto_update = true
+  end
+
+  if Vagrant.has_plugin?('vagrant-triggers')
+    config.trigger.after [:provision, :up, :reload] do
+      add_route
+    end
+
+    config.trigger.after [:halt, :destroy] do
+      delete_route
+    end
   end
 
   config.vm.define 'dcos-docker' do |vm_cfg|

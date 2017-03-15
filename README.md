@@ -50,6 +50,13 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
     vagrant plugin install vagrant-vbguest
     ```
 
+1. (Optional) Install vagrant-triggers plugin (automatially triggers route
+   updates mentioned in the Network Routing section.
+
+    ```console
+    vagrant plugin install vagrant-triggers
+    ```
+
 1. (Optional) Resize the vagrant disk
 
     DC/OS should deploy with the default disk size of 10GB, but for larger deployments you may need to increase the size of the VM.
@@ -91,6 +98,9 @@ For other make commands, see `make help`.
 ## Network Routing
 
 To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`). This routing is not required if you deployed DC/OS to Docker on a native Linux host.
+
+Also, this routing might have already been done automatically if you installed
+the `vagrant-triggers` plugin earlier.
 
 On **Linux**:
 ```console
