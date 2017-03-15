@@ -63,6 +63,14 @@ CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
 HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
+# if this session isn't interactive, then we don't want to allocate a
+# TTY, which would fail, but if it is interactive, we do want to attach
+# so that the user can send e.g. ^C through.
+INTERACTIVE := -i
+HAVE_TTY := $(shell [ -t 0 ] && echo 1 || echo 0)
+ifeq ($(HAVE_TTY), 1)
+	INTERACTIVE += -t
+endif
 
 all: install info ## Runs a full deploy of DC/OS in containers.
 
@@ -101,7 +109,7 @@ $(CURDIR)/genconf/ssh_key: $(SSH_KEY)
 start: build clean-certs $(CERTS_DIR) clean-containers master agent public_agent installer
 
 postflight: ## Polls DC/OS until it is healthy (5m timeout)
-	@docker exec -it $(MASTER_CTR)1 dcos-postflight
+	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 dcos-postflight
 
 master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
