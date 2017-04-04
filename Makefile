@@ -354,8 +354,7 @@ master_list:
 - $(subst ${space},${newline} ,$(MASTER_IPS))
 process_timeout: 10000
 resolvers:
-- 8.8.8.8
-- 8.8.4.4
+- 10.0.2.3
 ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
