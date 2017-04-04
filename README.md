@@ -50,7 +50,7 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
     vagrant plugin install vagrant-vbguest
     ```
 
-1. Resize the Vagrant disk
+1. Bring up the Virtual Machine with a chosen disk size
 
     Vagrant disks are sparse and as such they will only use the space that is actually used.
 
@@ -60,12 +60,6 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
     ```console
     vagrant/resize-disk.sh 102400
-    ```
-
-1. Bring up the virtual machine
-
-    ```console
-    vagrant up
     ```
 
 1. SSH into the virtual machine
