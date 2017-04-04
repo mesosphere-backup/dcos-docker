@@ -210,6 +210,7 @@ registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos mast
 	@echo -e "\t$(REGISTRY_IP)"
 
 genconf: start $(CONFIG_FILE) ## Run the DC/OS installer with --genconf.
+	$(RM) dcos-genconf.*.tar ## Remove tar files from previous runs;  otherwise we might skip building Docker image
 	@echo "+ Running genconf"
 	@bash $(DCOS_GENERATE_CONFIG_PATH) --genconf --offline -v
 
