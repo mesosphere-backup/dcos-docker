@@ -52,7 +52,7 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 1. Resize the Vagrant disk
 
-	Vagrant disks are sparse and as such they will only use the size that is actually used.
+    Vagrant disks are sparse and as such they will only use the space that is actually used.
 
     DC/OS should deploy with a size of 100GB, but for larger deployments you may need to increase the size of the VM.
 
