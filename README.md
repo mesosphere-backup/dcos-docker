@@ -50,20 +50,16 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
     vagrant plugin install vagrant-vbguest
     ```
 
-1. (Optional) Resize the vagrant disk
+1. Bring up the Virtual Machine with a chosen disk size
 
-    DC/OS should deploy with the default disk size of 10GB, but for larger deployments you may need to increase the size of the VM.
+    Vagrant disks are sparse and as such they will only use the space that is actually used.
+
+    DC/OS should deploy with a size of 100GB, but for larger deployments you may need to increase the size of the VM.
 
     The first argument is the desired disk size in MB (ex: 102400 is 100GB).
 
     ```console
     vagrant/resize-disk.sh 102400
-    ```
-
-1. Bring up the virtual machine
-
-    ```console
-    vagrant up
     ```
 
 1. SSH into the virtual machine
