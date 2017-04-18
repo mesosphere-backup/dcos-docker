@@ -27,7 +27,7 @@ BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
 # Detect default resolvers inside a docker container.
-RESOLVERS := $(shell docker run --rm alpine cat /etc/resolv.conf | grep '^nameserver.*' | tr -s ' ' | cut -d' ' -f2 | sed 's/^/- /')
+RESOLVERS := $(shell docker run --rm alpine cat /etc/resolv.conf | grep '^nameserver.*' | tr -s ' ' | cut -d' ' -f2 | paste -sd ' ' -)
 
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
@@ -358,7 +358,7 @@ master_list:
 - $(subst ${space},${newline} ,$(MASTER_IPS))
 process_timeout: 10000
 resolvers:
-$(RESOLVERS)
+- $(subst ${space},${newline} ,$(RESOLVERS))
 ssh_port: 22
 ssh_user: root
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
