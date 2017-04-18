@@ -15,14 +15,14 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 - systemd
 - make
-- Docker 1.11
+- Docker 1.13.1
 - A recent kernel that supports Overlay FS
 - git
 
 ### Mac
 
-- VirtualBox 5.0.x
-- Vagrant 1.8.4
+- VirtualBox 5.1.18
+- Vagrant 1.9.3
 - git
 
 ## Setup
