@@ -11,6 +11,9 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 ## Requirements
 
+DC/OS Docker can be run on macOS or Linux, or on Vagrant with VirtualBox on either platform.
+The support for macOS as a host is experimental.
+
 ### Linux
 
 - systemd.
@@ -22,8 +25,17 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 ### Mac
 
-- VirtualBox 5.1.18
-- Vagrant 1.9.3
+Mac support is experimental.
+For a supported configuration on macOS, use Vagrant.
+
+- [Docker for Mac](https://docs.docker.com/docker-for-mac/) (17.03.1 tested).
+  See "Graphdriver/Storage driver"
+- git
+
+### Vagrant
+
+- [VirtualBox](https://www.virtualbox.org/wiki/Downloads) 5.1.18
+- [Vagrant](https://www.vagrantup.com/) 1.9.3
 - git
 
 ## Setup
@@ -40,10 +52,8 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/)
 1. Move the installer to `dcos_generate_config.sh` in the root of this repo directory.
 
-**The following steps are REQUIRED on Macs and OPTIONAL on Linux.**
+**The following steps required if using Vagrant.**
 
-1. Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads)
-1. Install [Vagrant](https://www.vagrantup.com/)
 1. (Optional) Install vagrant-vbguest plugin (auto-updates vbox additions)
 
     ```console
@@ -86,31 +96,50 @@ For other make commands, see `make help`.
 
 ## Network Routing
 
+By default in macOS or on either macOS or Linux using Vagrant,
+containers are not reachable from the host. This is a problem, for
+example, when you want to SSH into a container (not `docker exec`)
+or to view the UI from a browser.
+
+### Vagrant
+
+#### Set up routing
+
 To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`). This routing is not required if you deployed DC/OS to Docker on a native Linux host.
 
-On **Linux**:
+On Linux:
 ```console
 host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
 ```
 
-On **Mac OS X**:
+On macOS:
 ```console
 host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
 ```
 
 Once routing is set up, you can access DC/OS directly from the host.
 
-### Network Routing Cleanup
+#### Network Routing Cleanup
 
-On **Linux**:
+On Linux:
 ```console
 host$ sudo ip route del 172.17.0.0/16
 ```
 
-On **Mac OS X**:
+On macOS:
 ```console
 host$ sudo route delete 172.17.0.0/16
 ```
+
+Once routing is set up, you can access DC/OS directly from the host.
+
+### Docker for Mac
+
+There are various solutions to allow Docker for Mac containers to be reachable from the host.
+
+[docker-mac-network](https://github.com/wojas/docker-mac-network) has been tested to work.
+
+[Docker for Mac - Host Bridge](https://github.com/mal/docker-for-mac-host-bridge) may also work.
 
 ### Node Shell Access
 
@@ -150,6 +179,16 @@ Unless user specifies graphdriver using `DOCKER_GRAPHDRIVER` env variable,
 the script tries to use the same one as the host uses. It detects it using
 `docker info` command. The resulting graphdriver must be among supported ones,
 or the script will terminate.
+
+To check the current storage driver, use `docker info --format "{{json .Driver}}"`.
+
+On Docker for Mac, the default driver is `overlay2`, which is not supported.
+Therefore, it is necessary to either set `DOCKER_GRAPHDRIVER` or to change the
+host storage driver.
+
+To change the storage driver on Docker for Mac to `overlay`, go to Docker >
+Preferences > Daemon Advanced and add `"storage-driver" : "overlay"` to the
+configuration file.  Then click "Apply & Restart".
 
 ## Settings
 
@@ -222,6 +261,12 @@ you have dummy net driver support (`CONFIG_DUMMY`) enabled in your kernel.
 Most standard distribution kernels should have this by default. On some
 older kernels you may need to manually install this module with
 `modprobe dummy` before starting the container cluster.
+
+# Docker out of space
+
+```
+docker volume prune
+```
 
 ## Github Pull Request (PR) Labels
 
