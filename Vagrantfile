@@ -3,7 +3,7 @@
 
 $dcos_box = ENV.fetch('DCOS_BOX', 'mesosphere/dcos-centos-virtualbox')
 $dcos_box_url = ENV.fetch('DCOS_BOX_URL', 'http://downloads.dcos.io/dcos-vagrant/metadata.json')
-$dcos_box_version = ENV.fetch('DCOS_BOX_VERSION', '~> 0.7.0')
+$dcos_box_version = ENV.fetch('DCOS_BOX_VERSION', '~> 0.9.1')
 
 # configure vbox host-only network
 system('./vagrant/vbox-network.sh')
