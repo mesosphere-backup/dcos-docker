@@ -385,7 +385,7 @@ function await() {
         exit $${RETCODE}
     fi
 }
-CMD="curl --fail --location --max-redir 0 --silent http://127.0.0.1/"
+CMD="curl --insecure --fail --location --max-redir 0 --silent https://127.0.0.1/"
 echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
 if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
