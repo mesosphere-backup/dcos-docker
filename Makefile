@@ -385,13 +385,20 @@ function await() {
         exit $${RETCODE}
     fi
 }
+1
+if echo $(CONFIG_BODY) | grep --silent "security: disabled" ; then
+	ADDRESS=http://127.0.0.1/
+else
+	ADDRESS=https://127.0.0.1/
+fi
+
 CURL_CMD="curl \
 	--insecure \
 	--fail \
 	--location \
 	--max-redir 0 \
 	--silent "
-CMD=$CURL_CMD" http://127.0.0.1/ || "$CURL_CMD" https://127.0.0.1/"
+CMD=$${CURL_CMD}" "$${ADDRESS}
 echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
 if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
