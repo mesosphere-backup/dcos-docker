@@ -391,7 +391,7 @@ CURL_CMD="curl \
 	--location \
 	--max-redir 0 \
 	--silent "
-CMD=$CURL_CMD" http://127.0.0.1/ || "$CURL_HTTP_COMMAND" https://127.0.0.1/"
+CMD=$CURL_CMD" http://127.0.0.1/ || "$CURL_CMD" https://127.0.0.1/"
 echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
 if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
