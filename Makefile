@@ -385,8 +385,10 @@ function await() {
         exit $${RETCODE}
     fi
 }
-1
-if echo $(CONFIG_BODY) | grep --silent "security: disabled" ; then
+
+# This is flaky because there are multiple ways that we can define
+# security: disabled in the config (e.g. no whitespace).
+if echo "$(CONFIG_BODY)" | grep --silent "security: disabled" ; then
 	ADDRESS=http://127.0.0.1/
 else
 	ADDRESS=https://127.0.0.1/
