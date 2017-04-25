@@ -386,21 +386,19 @@ function await() {
     fi
 }
 
-# This is flaky because there are multiple ways that we can define
-# security: disabled in the config (e.g. no whitespace).
-if echo "$(CONFIG_BODY)" | grep --silent "security: disabled" ; then
-	ADDRESS=http://127.0.0.1/
-else
-	ADDRESS=https://127.0.0.1/
-fi
-
+# Some security settings require HTTP and others require HTTPS.
+# Therefore we test both HTTP and HTTPS.
 CURL_CMD="curl \
 	--insecure \
 	--fail \
 	--location \
 	--max-redir 0 \
 	--silent "
-CMD=$${CURL_CMD}" "$${ADDRESS}
+HTTP_ADDRESS="http://127.0.0.1/"
+HTTPS_ADDRESS="https://127.0.0.1/"
+HTTP_CMD=$${CURL_CMD}$${HTTP_ADDRESS}
+HTTPS_CMD=$${CURL_CMD}$${HTTPS_ADDRESS}
+CMD="eval "$${HTTP_CMD}" || "$${HTTPS_CMD}
 echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
 if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
