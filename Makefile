@@ -385,20 +385,7 @@ function await() {
         exit $${RETCODE}
     fi
 }
-
-# Some security settings require HTTP and others require HTTPS.
-# Therefore we test both HTTP and HTTPS.
-CURL_CMD="curl \
-	--insecure \
-	--fail \
-	--location \
-	--max-redir 0 \
-	--silent "
-HTTP_ADDRESS="http://127.0.0.1/"
-HTTPS_ADDRESS="https://127.0.0.1/"
-HTTP_CMD=$${CURL_CMD}$${HTTP_ADDRESS}
-HTTPS_CMD=$${CURL_CMD}$${HTTPS_ADDRESS}
-CMD="eval "$${HTTP_CMD}" || "$${HTTPS_CMD}
+CMD="curl --insecure --fail --location --silent http://127.0.0.1/"
 echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
 if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
