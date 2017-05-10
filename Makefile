@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all vagrant build build-all start postflight master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
+.PHONY: all vagrant build build-all start postflight master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers
 
 # Set the number of DC/OS masters.
 MASTERS := 1
@@ -46,9 +46,6 @@ CLIENT_CERT := $(CERTS_DIR)/client.cert
 SSH_DIR := $(CURDIR)/include/ssh
 SSH_ALGO := rsa
 SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
-
-# Variable for the path to the mesos executors systemd slice.
-MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
 # Variables for various docker arguments.
 MASTER_MOUNTS :=
@@ -121,14 +118,10 @@ postflight: ## Polls DC/OS until it is healthy (5m timeout)
 master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
-$(MESOS_SLICE):
-	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
-	@sudo systemctl start mesos_executors.slice
-
-agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
+agent: ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
-public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
+public_agent: ## Starts the containers for DC/OS public agents.
 	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
@@ -248,11 +241,7 @@ clean-containers: ## Removes and cleans up the master, agent, and installer cont
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
 	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 
-clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
-	@sudo systemctl stop mesos_executors.slice
-	@sudo rm -f $(MESOS_SLICE)
-
-clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
+clean: clean-certs clean-containers ## Stops all containers and removes all generated files for the cluster.
 	$(RM) $(CURDIR)/genconf/ssh_key
 	$(RM) $(CONFIG_FILE)
 	$(RM) -r $(SSH_DIR)
