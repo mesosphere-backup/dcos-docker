@@ -261,10 +261,12 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) *.box
 
 test: ## executes the test script on a master
+	# This command is broken, as per
+	# https://jira.mesosphere.com/browse/DCOS-15759.
 	@docker exec -it \
 		$(MASTER_CTR)1 \
 		/bin/bash -x -c "\
-			cd /opt/mesosphere/active/dcos-integration-test/ && \
+			cd /opt/mesosphere/active/dcos-integration-test/util && \
 			/bin/bash ./run_integration_test.sh"
 
 # Define the function to start a master or agent container. This also starts
