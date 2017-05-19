@@ -125,8 +125,11 @@ master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
-	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
-	@sudo systemctl start mesos_executors.slice
+	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
+	    echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@; \
+	    sudo systemctl start mesos_executors.slice; \
+	fi
+
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
