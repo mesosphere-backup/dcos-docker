@@ -301,8 +301,11 @@ docker run -dt --privileged \
 sleep 2;
 docker exec $(1)$(2) mkdir -p /var/lib/dcos
 docker exec $(1)$(2) /bin/bash -c \
-    "echo 'MESOS_SYSTEMD_ENABLE_SUPPORT=$(MESOS_SYSTEMD_ENABLE_SUPPORT)' \
-    >> /var/lib/dcos/mesos-slave-common"
+    " \
+	set -o errexit -o nounset -o pipefail \
+	echo 'MESOS_SYSTEMD_ENABLE_SUPPORT=$(MESOS_SYSTEMD_ENABLE_SUPPORT)' \
+    	>> /var/lib/dcos/mesos-slave-common \
+	"
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
