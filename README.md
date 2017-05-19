@@ -183,7 +183,7 @@ This is the supported configuration.
 
 It is possible to run DC/OS Docker on hosts without systemd.  Set the variable
 `MESOS_SYSTEMD_ENABLE_SUPPORT` to `false` to disable systemd on the host. This
-changes a Mesos setting and is not supported by DC/OS.
+changes a Mesos setting. Although this setting works at the time of writing, it is not officially supported by DC/OS and so this feature is experimental.
 
 ## Troubleshooting
 
