@@ -14,7 +14,7 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 ### Linux
 
 - systemd.
-  Or optionally see "systemd" for an experimental alternative.
+  Or optionally see [here](#not-using-systemd-on-the-host) for an experimental alternative.
 - make
 - Docker 1.13.1
 - A recent kernel that supports Overlay FS
@@ -183,8 +183,7 @@ This is the supported configuration.
 
 It is possible to run DC/OS Docker on hosts without systemd.  Set the variable
 `MESOS_SYSTEMD_ENABLE_SUPPORT` to `false` to disable systemd on the host. This
-changes a Mesos setting and is not supported by DC/OS. On non-Linux hosts this
-is the default setting.
+changes a Mesos setting and is not supported by DC/OS.
 
 ## Troubleshooting
 
