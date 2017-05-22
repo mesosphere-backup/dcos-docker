@@ -185,6 +185,8 @@ It is possible to run DC/OS Docker on hosts without systemd.  Set the variable
 `MESOS_SYSTEMD_ENABLE_SUPPORT` to `false` to disable systemd on the host. This
 changes a Mesos setting. Although this setting works at the time of writing, it is not officially supported by DC/OS and so this feature is experimental.
 
+One problem which may occur when not using `systemd` on the host is that executors and tasks will be killed when the agent is restarted. [A JIRA issue](https://jira.mesosphere.com/browse/DCOS_OSS-1131) tracks making it possible to run DC/OS Docker in a supported manner without `systemd`.
+
 ## Troubleshooting
 
 Oh dear, you must be in an unfortunate position. You have a few options with
