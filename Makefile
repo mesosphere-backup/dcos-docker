@@ -126,8 +126,8 @@ master: ## Starts the containers for DC/OS masters.
 
 $(MESOS_SLICE):
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
-	    echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@; \
-	    sudo systemctl start mesos_executors.slice; \
+		echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@; \
+		sudo systemctl start mesos_executors.slice; \
 	fi
 
 
@@ -256,8 +256,8 @@ clean-containers: ## Removes and cleans up the master, agent, and installer cont
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
-	    sudo systemctl stop mesos_executors.slice; \
-	    sudo rm -f $(MESOS_SLICE); \
+		sudo systemctl stop mesos_executors.slice; \
+		sudo rm -f $(MESOS_SLICE); \
 	fi
 
 clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
@@ -304,9 +304,9 @@ docker run -dt --privileged \
 sleep 2;
 docker exec $(1)$(2) mkdir -p /var/lib/dcos
 docker exec $(1)$(2) /bin/bash -c -o errexit -o nounset -o pipefail \
-    " \
+	" \
 	echo 'MESOS_SYSTEMD_ENABLE_SUPPORT=$(MESOS_SYSTEMD_ENABLE_SUPPORT)' \
-    	>> /var/lib/dcos/mesos-slave-common \
+		>> /var/lib/dcos/mesos-slave-common \
 	"
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
