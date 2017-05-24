@@ -53,7 +53,7 @@ MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 # Detect the docker host's init system.
 # Docker host may be remote (boot2docker).
 # /proc/$PID/comm is only available in Linux 2.6.33 and later.
-DOCKER_HOST_INIT_SYS := $(docker run -it -v /proc:/host/proc:ro alpine cat /host/proc/1/comm)
+DOCKER_HOST_INIT_SYS := $(docker run $(INTERACTIVE) -v /proc:/host/proc:ro alpine cat /host/proc/1/comm)
 
 # Disable Mesos systemd support when the docker host is not systemd.
 # This is not officially supported or tested by DC/OS.
@@ -215,7 +215,7 @@ $(CLIENT_CERT): $(ROOTCA_CERT) $(CLIENT_CSR) $(CERTS_DIR)/index.txt $(CERTS_DIR)
 	@openssl x509 -noout -text -in $@
 
 registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos master.
-	@docker exec -it $(MASTER_CTR)1 \
+	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 \
 		docker run \
 		-d --restart=always \
 		-p 5000:5000 \
@@ -282,8 +282,7 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) *.box
 
 test: ips ## executes the test script on a master
-	@docker exec -it \
-		$(MASTER_CTR)1 \
+	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 \
 		bash -c -o errexit -o nounset -o pipefail "\
 			source /opt/mesosphere/active/dcos-integration-test/util/test_env.export && \
 			export SLAVE_HOSTS=$(AGENT_IPS) && \
