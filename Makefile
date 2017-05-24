@@ -49,6 +49,9 @@ SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
+# Running Mesos without systemd support is not supported by DC/OS.
+# Therefore, non-Linux DC/OS Docker hosts are experimental.
+MESOS_SYSTEMD_ENABLE_SUPPORT := true
 
 # Variables for various docker arguments.
 MASTER_MOUNTS :=
@@ -122,8 +125,11 @@ master: ## Starts the containers for DC/OS masters.
 	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
-	@echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@
-	@sudo systemctl start mesos_executors.slice
+	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
+		echo -e '[Unit]\nDescription=Mesos Executors Slice' | sudo tee -a $@; \
+		sudo systemctl start mesos_executors.slice; \
+	fi
+
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
@@ -249,8 +255,10 @@ clean-containers: ## Removes and cleans up the master, agent, and installer cont
 	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
-	@sudo systemctl stop mesos_executors.slice
-	@sudo rm -f $(MESOS_SLICE)
+	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
+		sudo systemctl stop mesos_executors.slice; \
+		sudo rm -f $(MESOS_SLICE); \
+	fi
 
 clean: clean-certs clean-containers clean-slice ## Stops all containers and removes all generated files for the cluster.
 	$(RM) $(CURDIR)/genconf/ssh_key
@@ -270,6 +278,13 @@ test: ## executes the test script on a master
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
 # successfully.
+#
+# A supported configuration includes systemd on the host. In these
+# configurations, Mesos uses systemd. There is experimentatl support for
+# running Mesos without systemd support. A configuration file which is common
+# to agents and public agents is either created or added to.
+# This configuration file specifies whether Mesos should or should not enable systemd.
+# This file path is referred to in the `dcos-mesos-slave.service` configuration.
 # @param name	  First part of the container name.
 # @param number	  ID of the container.
 # @param mounts	  Specific mounts for the container.
@@ -287,6 +302,12 @@ docker run -dt --privileged \
 	--add-host "$(REGISTRY_HOST):$(shell $(IP_CMD) $(MASTER_CTR)1 2>/dev/null || echo 127.0.0.1)" \
 	$(DOCKER_IMAGE);
 sleep 2;
+docker exec $(1)$(2) mkdir -p /var/lib/dcos
+docker exec $(1)$(2) /bin/bash -c -o errexit -o nounset -o pipefail \
+	" \
+	echo 'MESOS_SYSTEMD_ENABLE_SUPPORT=$(MESOS_SYSTEMD_ENABLE_SUPPORT)' \
+		>> /var/lib/dcos/mesos-slave-common \
+	"
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef
