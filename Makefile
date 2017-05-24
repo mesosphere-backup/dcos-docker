@@ -49,9 +49,22 @@ SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
-# Running Mesos without systemd support is not supported by DC/OS.
-# Therefore, non-Linux DC/OS Docker hosts are experimental.
-MESOS_SYSTEMD_ENABLE_SUPPORT := true
+
+# Detect the docker host's init system.
+# Docker host may be remote (boot2docker).
+# /proc/$PID/comm is only available in Linux 2.6.33 and later.
+DOCKER_HOST_INIT_SYS := $(docker run -it -v /proc:/host/proc:ro alpine cat /host/proc/1/comm)
+
+# Disable Mesos systemd support when the docker host is not systemd.
+# This is not officially supported or tested by DC/OS.
+# Disabling MESOS_SYSTEMD_ENABLE_SUPPORT means that executors will be namespaced under the Mesos agent.
+# So executors (and tasks) will be killed when the Mesos agent is restarted.
+# This makes zero downtime in-place DC/OS upgrades impossible.
+ifeq ($(DOCKER_HOST_INIT_SYS), systemd)
+	MESOS_SYSTEMD_ENABLE_SUPPORT := true
+else
+	MESOS_SYSTEMD_ENABLE_SUPPORT := false
+endif
 
 # Variables for various docker arguments.
 MASTER_MOUNTS :=
@@ -304,10 +317,7 @@ docker run -dt --privileged \
 sleep 2;
 docker exec $(1)$(2) mkdir -p /var/lib/dcos
 docker exec $(1)$(2) /bin/bash -c -o errexit -o nounset -o pipefail \
-	" \
-	echo 'MESOS_SYSTEMD_ENABLE_SUPPORT=$(MESOS_SYSTEMD_ENABLE_SUPPORT)' \
-		>> /var/lib/dcos/mesos-slave-common \
-	"
+	"echo 'MESOS_SYSTEMD_ENABLE_SUPPORT=$(MESOS_SYSTEMD_ENABLE_SUPPORT)' >> /var/lib/dcos/mesos-slave-common"
 docker exec $(1)$(2) systemctl start sshd.service;
 docker exec $(1)$(2) docker ps -a > /dev/null;
 endef

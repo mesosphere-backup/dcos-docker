@@ -9,7 +9,7 @@ set -e
 #	or: ./generate.sh debian-newversion
 #		to create a new folder and a Dockerfile within it
 
-cd "$(dirname "$(readlink -f "$BASH_SOURCE")")"
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 versions=( "$@" )
 if [ ${#versions[@]} -eq 0 ]; then
