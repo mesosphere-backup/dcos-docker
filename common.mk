@@ -46,12 +46,12 @@ help: ## Generate the Makefile help
 
 .PHONY: ips
 ips: ## Gets the ips for the currently running containers.
-	@$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call exit_not_running_container,$(MASTER_CTR),$(NUM)))
-	@$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call exit_not_running_container,$(AGENT_CTR),$(NUM)))
-	@$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call exit_not_running_container,$(PUBLIC_AGENT_CTR),$(NUM)))
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
-	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call get_public_agent_ips,$(NUM)))
+	@$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call exit_not_running_container,$(MASTER_CTR),$(NUM)))
+	@$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call exit_not_running_container,$(AGENT_CTR),$(NUM)))
+	@$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call exit_not_running_container,$(PUBLIC_AGENT_CTR),$(NUM)))
+	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call get_master_ips,$(NUM)))
+	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
+	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call get_public_agent_ips,$(NUM)))
 
 # Helper definitions.
 null :=

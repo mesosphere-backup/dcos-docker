@@ -135,7 +135,8 @@ postflight: ## Polls DC/OS until it is healthy (5m timeout)
 	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 dcos-postflight
 
 master: ## Starts the containers for DC/OS masters.
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+	@echo "+ Starting master nodes"
+	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(MESOS_SLICE):
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
@@ -145,10 +146,12 @@ $(MESOS_SLICE):
 
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+	@echo "+ Starting agent nodes"
+	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
-	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+	@echo "+ Starting public agent nodes"
+	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl $(DCOS_GENERATE_CONFIG_URL) > $@
@@ -247,11 +250,11 @@ deploy: preflight ## Run the DC/OS installer with --deploy.
 install: VOLUME_MOUNTS += $(BOOTSTRAP_VOLUME_MOUNT)
 install: genconf ## Install DC/OS using "advanced" method
 	@echo "+ Running dcos_install.sh on masters"
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call run_dcos_install_in_container,$(MASTER_CTR),$(NUM),master))
+	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call run_dcos_install_in_container,$(MASTER_CTR),$(NUM),master))
 	@echo "+ Running dcos_install.sh on agents"
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call run_dcos_install_in_container,$(AGENT_CTR),$(NUM),slave))
+	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call run_dcos_install_in_container,$(AGENT_CTR),$(NUM),slave))
 	@echo "+ Running dcos_install.sh on public agents"
-	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call run_dcos_install_in_container,$(PUBLIC_AGENT_CTR),$(NUM),slave_public))
+	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call run_dcos_install_in_container,$(PUBLIC_AGENT_CTR),$(NUM),slave_public))
 	@echo "DC/OS node setup in progress. Run 'make postflight' to block until they are ready."
 
 web: preflight ## Run the DC/OS installer with --web.
@@ -263,9 +266,9 @@ clean-certs: ## Remove all the certs generated for the registry.
 
 clean-containers: ## Removes and cleans up the master, agent, and installer containers.
 	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
-	$(foreach NUM,$(shell seq 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
-	$(foreach NUM,$(shell seq 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
-	$(foreach NUM,$(shell seq 1 $(PUBLIC_AGENTS)),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM)))
+	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
+	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
+	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
