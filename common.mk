@@ -97,3 +97,30 @@ endef
 define remove_container
 docker rm -fv $(1)$(2) > /dev/null 2>&1 || true;
 endef
+
+# Define the function to add /etc/hosts entries.
+# @param ip			IP address.
+# @param hostname	Canonical Hostname to route to the IP address.
+define create_host
+echo "$(1)	$(2)" | $(call sudo_write,/etc/hosts) tee -a /etc/hosts > /dev/null
+endef
+
+# Define the function to add an alias to an existing /etc/hosts entry.
+# @param ip			IP address.
+# @param alias		Alias hostname to route to the IP address.
+define create_host_alias
+$(call sudo_write,/etc/hosts) sed -i "" "s/\(^$(1)[:space:]*.*\)/\1 $(2)/" /etc/hosts
+endef
+
+# Define the function to remove /etc/hosts entries.
+# @param regex		Regex pattern for IP address or hostname.
+define delete_host
+$(call sudo_write,/etc/hosts) sed -i "" "/$(1)/d" /etc/hosts
+endef
+
+# Define the function to use sudo if required for file write access.
+# Use this to avoid requiring password entry when unnecessary.
+# @param path		Path to check for write access.
+define sudo_write
+$(shell [[ -w "/etc/hosts" ]] && echo -n "" || echo -n "sudo")
+endef

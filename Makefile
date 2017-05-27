@@ -293,6 +293,32 @@ test: ips ## executes the test script on a master
 			py.test -vv \
 		"
 
+hosts: ## Creates entries in /etc/hosts
+	@echo "Before:"
+	@grep "\.dcos" /etc/hosts || echo "<empty>"
+	@$(call delete_host,\.dcos)
+	@$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)), \
+		$(call create_host,$(shell $(IP_CMD) $(MASTER_CTR)$(NUM)),m$(NUM).dcos) \
+	)
+	@$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)), \
+		$(call create_host,$(shell $(IP_CMD) $(AGENT_CTR)$(NUM)),a$(NUM).dcos) \
+	)
+	@$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)), \
+		$(call create_host,$(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)$(NUM)),p$(NUM).dcos) \
+	)
+	@if [[ $(PUBLIC_AGENTS) != 0 ]]; then \
+		$(call create_host_alias,$(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)1),oinker.acme.org); \
+	fi
+	@echo "After:"
+	@grep "\.dcos" /etc/hosts || echo "<empty>"
+
+clean-hosts: ## Deletes dcos entries in /etc/hosts
+	@echo "Before:"
+	@grep "\.dcos" /etc/hosts || echo "<empty>"
+	@$(call delete_host,\.dcos)
+	@echo "After:"
+	@grep "\.dcos" /etc/hosts || echo "<empty>"
+
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
 # successfully.
