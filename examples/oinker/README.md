@@ -47,7 +47,7 @@ Use the following steps to install and access Oinker:
 1. Install Cassandra
 
     ```
-    dcos package install --options=examples/oinker/cassandra-pkg.json cassandra --yes
+    dcos package install --options=examples/oinker/pkg-cassandra.json cassandra --yes
     ```
 
     This minimal config only runs a single Cassandra node, unlike the default config that runs three.
@@ -57,7 +57,7 @@ Use the following steps to install and access Oinker:
 1. Install Marathon-LB
 
     ```
-    dcos package install --options=examples/oinker/marathon-lb-pkg.json marathon-lb --yes
+    dcos package install --options=examples/oinker/pkg-marathon-lb.json marathon-lb --yes
     ```
 
     Marathon-LB will start one task on the public agent. Wait for it to be running (should be quick).
