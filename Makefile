@@ -154,7 +154,7 @@ public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
-	curl --fail --location --show-error $(DCOS_GENERATE_CONFIG_URL) > $@
+	curl --fail --location --show-error -o $@ $(DCOS_GENERATE_CONFIG_URL)
 
 installer: $(DCOS_GENERATE_CONFIG_PATH) ## Starts the container for the DC/OS installer.
 
