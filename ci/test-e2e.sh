@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Performs End To End (e2e) testing of DC/OS Vagrant.
+# Performs End To End (e2e) testing of DC/OS Docker.
 #
 # Options:
 #   DCOS_VERSION (defaults to the "latest" in dcos-versions.yaml)

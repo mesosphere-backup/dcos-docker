@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Installs and tests Oinker on DC/OS Vagrant.
+# Installs and tests Oinker on DC/OS Docker.
 # Requires dcos CLI to be installed, configured, and logged in.
 #
 # Usage:

@@ -8,7 +8,7 @@
 # Options:
 #   DCOS_URL -- URL to DC/OS cluster (default: http://m1.dcos/)
 #   DCOS_VERSION -- Version of DC/OS (default: <auto-detected>)
-#   DCOS_VERSION_DETECT -- URL of version detection script (default: file://${PWD}/ci/dcos-version.sh or https://raw.githubusercontent.com/dcos/dcos-vagrant/master/ci/dcos-version.sh)
+#   DCOS_VERSION_DETECT -- URL of version detection script (default: file://${PWD}/ci/dcos-version.sh or https://raw.githubusercontent.com/dcos/dcos-docker/master/ci/dcos-version.sh)
 #
 # Usage:
 # $ ci/dcos-install-cli.sh
@@ -19,14 +19,14 @@
 # $ ${EXE} --version
 #
 # Remote Usage:
-# $ curl https://raw.githubusercontent.com/dcos/dcos-vagrant/master/ci/dcos-install-cli.sh | bash
+# $ curl https://raw.githubusercontent.com/dcos/dcos-docker/master/ci/dcos-install-cli.sh | bash
 # $ dcos --version
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-# Default to dcos-vagrant address
+# Default to dcos-docker address
 export DCOS_URL="${DCOS_URL:-http://m1.dcos/}"
 
 echo >&2 "DC/OS URL: ${DCOS_URL}"
@@ -39,7 +39,7 @@ fi
 
 if [[ -z "${DCOS_VERSION:-}" ]]; then
   # Default to version remote detection script
-  DCOS_VERSION_DETECT="${DCOS_VERSION_DETECT:-https://raw.githubusercontent.com/dcos/dcos-vagrant/master/ci/dcos-version.sh}"
+  DCOS_VERSION_DETECT="${DCOS_VERSION_DETECT:-https://raw.githubusercontent.com/dcos/dcos-docker/master/ci/dcos-version.sh}"
   echo >&2 "Version detect script: ${DCOS_VERSION_DETECT}"
   DCOS_VERSION="$(curl --fail --location --silent --show-error "${DCOS_VERSION_DETECT}" | bash)"
 fi
