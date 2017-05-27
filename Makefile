@@ -21,7 +21,7 @@ MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 # Variables for the files that get generated with the correct configurations.
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 SERVICE_DIR := $(CURDIR)/include/systemd
-DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh
+DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh
 DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
@@ -154,7 +154,7 @@ public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
-	curl $(DCOS_GENERATE_CONFIG_URL) > $@
+	curl --fail --location --show-error $(DCOS_GENERATE_CONFIG_URL) > $@
 
 installer: $(DCOS_GENERATE_CONFIG_PATH) ## Starts the container for the DC/OS installer.
 
