@@ -10,6 +10,5 @@ dcos-genconf.*.tar
 genconf/cluster_packages.json
 *.ova
 packer_cache
-*.box
 output-virtualbox-ovf
 .idea
