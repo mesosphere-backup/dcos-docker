@@ -109,13 +109,13 @@ endef
 # @param ip			IP address.
 # @param alias		Alias hostname to route to the IP address.
 define create_host_alias
-$(call sudo_write,/etc/hosts) sed -i "" "s/\(^$(1)[:space:]*.*\)/\1 $(2)/" /etc/hosts
+$(call sudo_write,/etc/hosts) sed -i="" "s/\(^$(1)[:space:]*.*\)/\1 $(2)/" /etc/hosts
 endef
 
 # Define the function to remove /etc/hosts entries.
 # @param regex		Regex pattern for IP address or hostname.
 define delete_host
-$(call sudo_write,/etc/hosts) sed -i "" "/$(1)/d" /etc/hosts
+$(call sudo_write,/etc/hosts) sed -i="" "/$(1)/d" /etc/hosts
 endef
 
 # Define the function to use sudo if required for file write access.
