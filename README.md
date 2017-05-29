@@ -63,7 +63,7 @@ The support for macOS as a host is experimental.
     sed -i="" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
     ```
 
-    See [Mac Compatible installers](Mac Compatible Installers) for more details.
+    See [Mac Compatible installers](#mac-compatible-installers) for more details.
 
 1. (**Vagrant-only**) Bring up the Virtual Machine with a chosen disk size.
 
