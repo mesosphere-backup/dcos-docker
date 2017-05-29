@@ -1,8 +1,10 @@
-## DC/OS Docker
+# DC/OS Docker
 
-Run DC/OS (including systemd) in Docker containers, one per node, using Docker-in-Docker for DC/OS services/jobs.
+Run DC/OS in Docker containers!
 
-DC/OS Docker is designed to optimize developer cycle time. For a more production-like local experience, see [DC/OS Vagrant](https://github.com/dcos/dcos-vagrant) which runs each node in its own VM.
+Each container on the host emulates a DC/OS node, using Docker-in-Docker to run DC/OS jobs & services.
+
+DC/OS Docker is designed to optimize development cycle time. For a more production-like local experience, see [DC/OS Vagrant](https://github.com/dcos/dcos-vagrant) which runs each node in its own VM.
 
 ## Caveats
 
@@ -11,56 +13,59 @@ DC/OS Docker is designed to optimize developer cycle time. For a more production
 
 ## Requirements
 
-DC/OS Docker can be run on macOS or Linux, or on Vagrant with VirtualBox on either platform.
+DC/OS Docker can be run on Linux, macOS, or on Linux in a VM using Vagrant with VirtualBox.
 The support for macOS as a host is experimental.
 
 ### Linux
 
-- systemd.
-  Or optionally see [here](#not-using-systemd-on-the-host) for an experimental alternative.
-- make
-- Docker 1.13.1
+- systemd (recommended) or [no systemd](#non-systemd-host) (experiemental)
 - A recent kernel that supports Overlay FS
+- Docker 1.13.1+
+- make
 - git
 
 ### Mac
 
-Mac support is experimental.
-For a supported configuration on macOS, use Vagrant.
+> **NOTE:**  Docker for Mac support is experimental. Use Vagrant for a fully supported configuration.
 
-- [Docker for Mac](https://docs.docker.com/docker-for-mac/) (17.03.1 tested).
-  See "Graphdriver/Storage driver"
+- [Docker for Mac](https://docs.docker.com/docker-for-mac/) 1.13.1+
+  - overlay or aufs storage driver (recommended). See [Storage Driver](#storage-driver) for more details.
+  - 6GB Memory (recommended). See [Docker for Mac advanced config](https://docs.docker.com/docker-for-mac/#advanced) for more details.
+- make
 - git
 
 ### Vagrant
 
-- [VirtualBox](https://www.virtualbox.org/wiki/Downloads) 5.1.18
-- [Vagrant](https://www.vagrantup.com/) 1.9.3
+- [VirtualBox](https://www.virtualbox.org/wiki/Downloads) 5.1.18+
+- [Vagrant](https://www.vagrantup.com/) 1.9.3+
 - git
 
 ## Setup
 
-**The following steps are REQUIRED on all hosts.**
+1. Clone this repo:
 
-1. Clone this repo
-
-    ```
+    ```console
     git clone https://github.com/dcos/dcos-docker
     cd dcos-docker
     ```
 
-1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/)
-1. Move the installer to `dcos_generate_config.sh` in the root of this repo directory.
+1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/) into the root of the dcos-docker repo directory.
 
-**The following steps required if using Vagrant.**
-
-1. (Optional) Install vagrant-vbguest plugin (auto-updates vbox additions)
+    For example, download the latest stable release:
 
     ```console
-    vagrant plugin install vagrant-vbguest
+    make installer
     ```
 
-1. Bring up the Virtual Machine with a chosen disk size
+1. (Mac-only) Modify the DC/OS installer to support BSD sed:
+
+    ```console
+    sed -i="" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
+    ```
+
+    See [Mac Compatible installers](Mac Compatible Installers) for more details.
+
+1. (Vagrant-only) Bring up the Virtual Machine with a chosen disk size.
 
     Vagrant disks are sparse and as such they will only use the space that is actually used.
 
@@ -72,7 +77,7 @@ For a supported configuration on macOS, use Vagrant.
     vagrant/resize-disk.sh 102400
     ```
 
-1. SSH into the virtual machine
+1. (Vagrant-only) SSH into the virtual machine:
 
     ```console
     vagrant ssh
@@ -80,13 +85,13 @@ For a supported configuration on macOS, use Vagrant.
 
 ## Deploy
 
-1. Deploy DC/OS in Docker
+1. Deploy DC/OS in Docker:
 
     ```console
     make
     ```
 
-1. (Optional) Wait for DC/OS to come up
+1. (Optional) Wait for DC/OS to come up:
 
     ```console
     make postflight
@@ -96,50 +101,48 @@ For other make commands, see `make help`.
 
 ## Network Routing
 
-By default in macOS or on either macOS or Linux using Vagrant,
-containers are not reachable from the host. This is a problem, for
-example, when you want to SSH into a container (not `docker exec`)
-or to view the UI from a browser.
+By default with Vagrant or Docker for Mac, containers are not reachable from the host.
+This will prohibit SSHing into a container (not `docker exec`) and viewing the DC/OS GUI in a browser.
+However, there are a few workarounds described below.
 
 ### Vagrant
 
-#### Set up routing
-
 To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`). This routing is not required if you deployed DC/OS to Docker on a native Linux host.
 
+Execute the following on the host machine. Once routing is set up, you can access DC/OS directly from the host.
+
+**Setup**
+
 On Linux:
 ```console
-host$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
+$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
 ```
 
 On macOS:
 ```console
-host$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
+$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
 ```
 
-Once routing is set up, you can access DC/OS directly from the host.
-
-#### Network Routing Cleanup
+**Cleanup**
 
 On Linux:
 ```console
-host$ sudo ip route del 172.17.0.0/16
+$ sudo ip route del 172.17.0.0/16
 ```
 
 On macOS:
 ```console
-host$ sudo route delete 172.17.0.0/16
+$ sudo route delete 172.17.0.0/16
 ```
-
-Once routing is set up, you can access DC/OS directly from the host.
 
 ### Docker for Mac
 
-There are various solutions to allow Docker for Mac containers to be reachable from the host.
+HyperKit (the hypervisor used by Docker for Mac) does not currently support IP routing on Mac.
 
-[docker-mac-network](https://github.com/wojas/docker-mac-network) has been tested to work.
+Use one of the following alternative solutions instead:
 
-[Docker for Mac - Host Bridge](https://github.com/mal/docker-for-mac-host-bridge) may also work.
+- [docker-mac-network](https://github.com/wojas/docker-mac-network) sets up a VPN running in containers and uses a VPN client to route traffic to other containers.
+- [Docker for Mac - Host Bridge](https://github.com/mal/docker-for-mac-host-bridge) uses a kernel extension to add a new network interface and Docker network bridge.
 
 ### Node Shell Access
 
@@ -149,13 +152,13 @@ With network routing configured, you can SSH directly into DC/OS nodes from the 
 host$ ssh -i genconf/ssh_key root@172.17.0.2
 ```
 
-Or you could use the DC/OS CLI:
+Or you can SSH with the DC/OS CLI:
 
 ```console
-dcos node ssh --leader --user=root --option IdentityFile=genconf/ssh_key
+$ dcos node ssh --leader --user=root --option IdentityFile=genconf/ssh_key
 ```
 
-From the Linux host (or SSH'd into Vagrant) you can also use Docker exec to open a shell:
+From the host (or SSH'd into Vagrant) you can also use Docker exec to open a shell:
 
 ```console
 $ docker ps --format="table {{.ID}}\t{{.Names}}\t{{.Status}}"
@@ -167,7 +170,7 @@ e80466ce71c9        dcos-docker-master1     Up About a minute
 $ docker exec -it dcos-docker-master1 bash
 ```
 
-## Graphdriver/Storage driver
+## Storage Driver
 
 There is no requirement on the hosts storage driver type, but the docker daemon
 running inside docker container supports only `aufs` and `overlay`. The loopback
@@ -199,8 +202,8 @@ setting the variable `MASTERS`. You can change the number of agents by setting
 the variable `AGENTS`. For example:
 
 ```console
-$ make MASTERS=3 AGENTS=5
 # start a cluster with 3 masters and 5 agents
+$ make MASTERS=3 AGENTS=5
 ```
 
 ### Changing the distro
@@ -214,7 +217,7 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
-### Not using `systemd` on the host
+### Non-systemd host
 
 By default, systemd is used on the host to create a [systemd
 slice](https://www.freedesktop.org/software/systemd/man/systemd.slice.html).
@@ -262,7 +265,7 @@ Most standard distribution kernels should have this by default. On some
 older kernels you may need to manually install this module with
 `modprobe dummy` before starting the container cluster.
 
-# Docker out of space
+## Docker out of space
 
 ```
 docker volume prune
@@ -283,3 +286,21 @@ Various labels used on pull requests and what they mean
     review in order to get it in. The PR may bounce back to "work in progress"
     or "request for comment" if it needs more work or discussion. Might also
     just do all the review and fixup with the label attached.
+
+## Mac Compatible Installers
+
+DC/OS installers are not immediately compatible with the BSD sed that ships with macOS. This will be fixed in a future release of DC/OS: https://github.com/dcos/dcos/pull/1571 . For now, use one of the following options:
+
+1. Modify the installer with the following script:
+
+    ```
+    sed -i '' -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
+    ```
+
+2. Install GNU sed with Homebrew:
+
+    ```
+    brew install gnu-sed --with-default-names
+    ```
+
+    Warning: This method will make GNU sed the default sed, which may have unforeseen side-effects.
