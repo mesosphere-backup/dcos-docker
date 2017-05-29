@@ -390,7 +390,7 @@ Documentation=https://docs.docker.com
 After=dbus.service
 
 [Service]
-ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_GRAPHDRIVER} \
+ExecStart=/usr/bin/docker daemon -D -s ${DOCKER_STORAGEDRIVER} \
 	--disable-legacy-registry=true \
 	--exec-opt=native.cgroupdriver=cgroupfs
 LimitNOFILE=1048576

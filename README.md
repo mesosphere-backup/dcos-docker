@@ -178,15 +178,15 @@ devicemapper may be problematic when it comes to loopback devices - they may not
 be properly cleaned up and thus prevent docker daemon from starting. YMMV
 though.
 
-Unless user specifies graphdriver using `DOCKER_GRAPHDRIVER` env variable,
-the script tries to use the same one as the host uses. It detects it using
-`docker info` command. The resulting graphdriver must be among supported ones,
+Unless user specifies the storage driver using `DOCKER_STORAGEDRIVER` env variable,
+the script tries to use the same one that the host uses. It detects it using
+`docker info` command. The resulting storage driver must be among supported ones,
 or the script will terminate.
 
 To check the current storage driver, use `docker info --format "{{json .Driver}}"`.
 
 On Docker for Mac, the default driver is `overlay2`, which is not supported.
-Therefore, it is necessary to either set `DOCKER_GRAPHDRIVER` or to change the
+Therefore, it is necessary to either set `DOCKER_STORAGEDRIVER` or to change the
 host storage driver.
 
 To change the storage driver on Docker for Mac to `overlay`, go to Docker >
