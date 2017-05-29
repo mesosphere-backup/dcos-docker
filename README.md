@@ -57,7 +57,7 @@ The support for macOS as a host is experimental.
     make installer
     ```
 
-1. (Mac-only) Modify the DC/OS installer to support BSD sed:
+1. (**Mac-only**) Modify the DC/OS installer to support BSD sed:
 
     ```console
     sed -i="" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
@@ -65,7 +65,7 @@ The support for macOS as a host is experimental.
 
     See [Mac Compatible installers](Mac Compatible Installers) for more details.
 
-1. (Vagrant-only) Bring up the Virtual Machine with a chosen disk size.
+1. (**Vagrant-only**) Bring up the Virtual Machine with a chosen disk size.
 
     Vagrant disks are sparse and as such they will only use the space that is actually used.
 
@@ -77,7 +77,7 @@ The support for macOS as a host is experimental.
     vagrant/resize-disk.sh 102400
     ```
 
-1. (Vagrant-only) SSH into the virtual machine:
+1. (**Vagrant-only**) SSH into the virtual machine:
 
     ```console
     vagrant ssh
@@ -294,7 +294,7 @@ DC/OS installers are not immediately compatible with the BSD sed that ships with
 1. Modify the installer with the following script:
 
     ```
-    sed -i '' -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
+    sed -i="" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
     ```
 
 2. Install GNU sed with Homebrew:
