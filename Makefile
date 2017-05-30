@@ -290,10 +290,10 @@ test: ips ## executes the test script on a master
 	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 \
 		bash -c -o errexit -o nounset -o pipefail "\
 			source /opt/mesosphere/active/dcos-integration-test/util/test_env.export && \
-			export SLAVE_HOSTS=$(AGENT_IPS) && \
-			export PUBLIC_SLAVE_HOSTS=$(PUBLIC_AGENT_IPS) && \
-			cd /opt/mesosphere/active/dcos-integration-test && \
-			py.test -vv \
+			export SLAVE_HOSTS='$(subst ${space},${comma},$(AGENT_IPS))' && \
+			export PUBLIC_SLAVE_HOSTS='$(subst ${space},${comma},$(PUBLIC_AGENT_IPS))' && \
+			cd '$(DCOS_PYTEST_DIR)' && \
+			$(DCOS_PYTEST_CMD) \
 		"
 
 hosts: ## Creates entries in /etc/hosts

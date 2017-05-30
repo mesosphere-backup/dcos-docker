@@ -86,3 +86,6 @@ DCOS_URL="$(dcos config show core.dcos_url)"
 
 # Test GUI (authenticated)
 curl --fail --location --silent --show-error --verbose -H "Authorization: token=${DCOS_ACS_TOKEN}" ${DCOS_URL} -o /dev/null
+
+# Integration tests
+make test
