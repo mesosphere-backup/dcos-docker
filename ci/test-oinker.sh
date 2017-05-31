@@ -36,3 +36,16 @@ ci/test-oinker-lb.sh
 
 # Test posting and reading posts
 ci/test-oinker-oinking.sh
+
+# Uninstall Oinker
+dcos marathon app remove oinker
+
+# Uninstall Marathon-LB
+dcos package uninstall marathon-lb
+
+# Uninstall Cassandra
+dcos package uninstall cassandra
+
+# Uninstall Cassandra framework
+dcos node ssh --master-proxy --leader --user=root --option StrictHostKeyChecking=no --option IdentityFile=$(pwd)/genconf/ssh_key \
+  docker run mesosphere/janitor /janitor.py -r cassandra-role -p cassandra-principal -z dcos-service-cassandra
