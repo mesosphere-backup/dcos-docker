@@ -92,4 +92,7 @@ curl --fail --location --silent --show-error --verbose -H "Authorization: token=
 ci/dcos-create-user.sh "albert@bekstil.net"
 
 # Integration tests
-make test
+make test DCOS_PYTEST_CMD="py.test -vv --junitxml=/tmp/test.xml"
+
+# Copy out test results
+docker cp dcos-docker-master1:/tmp/test.xml test.xml
