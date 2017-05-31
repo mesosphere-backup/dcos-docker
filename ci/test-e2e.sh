@@ -13,6 +13,9 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
+# Networking integration tests require 2 private agents
+MAKE_ARGS="AGENTS=2"
+
 # Require bash 4+ for associative arrays
 if [[ ${BASH_VERSINFO[0]} -lt 4 ]]; then
   echo "Requires Bash 4+" >&2
@@ -32,29 +35,29 @@ if [[ -z "${DCOS_VERSION:-}" ]]; then
 fi
 
 # Destroy All VMs
-make clean
+make clean ${MAKE_ARGS}
 
 # Destroy All VMs on exit
 function cleanup() {
-  make clean
+  make clean ${MAKE_ARGS}
 }
 trap cleanup EXIT
 
 # Deploy
-make
+make ${MAKE_ARGS}
 
 # Wait
-make postflight
+make postflight ${MAKE_ARGS}
 
 # Cleanup hosts on exit
 function cleanup2() {
-  make clean-hosts
+  make clean-hosts ${MAKE_ARGS}
   cleanup
 }
 trap cleanup2 EXIT
 
 # Setup /etc/hosts (password required)
-make hosts
+make hosts ${MAKE_ARGS}
 
 # Test API (unauthenticated)
 curl --fail --location --silent --show-error --verbose http://m1.dcos/dcos-metadata/dcos-version.json
@@ -105,6 +108,6 @@ function cleanup4() {
 trap cleanup4 EXIT
 
 # Integration tests
-make test \
+make test ${MAKE_ARGS} \
   DCOS_PYTEST_CMD="py.test -vv --junitxml=test-junit.xml -m 'not ccm'" \
   DCOS_PYTEST_DIR="/opt/mesosphere/active/dcos-integration-test/"
