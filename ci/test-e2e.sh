@@ -99,10 +99,12 @@ ci/dcos-create-user.sh "albert@bekstil.net"
 # Delete CLI on exit
 function cleanup4() {
   # Copy out test results
-  docker cp dcos-docker-master1:/tmp/test.xml test.xml || true
+  docker cp dcos-docker-master1:/opt/mesosphere/active/dcos-integration-test/test-junit.xml test-junit.xml || true
   cleanup3
 }
 trap cleanup4 EXIT
 
 # Integration tests
-make test DCOS_PYTEST_CMD="py.test -vv --junitxml=/tmp/test.xml -m 'not ccm'"
+make test \
+  DCOS_PYTEST_CMD="py.test -vv --junitxml=test-junit.xml -m 'not ccm'" \
+  DCOS_PYTEST_DIR="/opt/mesosphere/active/dcos-integration-test/"
