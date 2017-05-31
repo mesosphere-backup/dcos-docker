@@ -105,4 +105,4 @@ function cleanup4() {
 trap cleanup4 EXIT
 
 # Integration tests
-make test DCOS_PYTEST_CMD="py.test -vv --junitxml=/tmp/test.xml"
+make test DCOS_PYTEST_CMD="py.test -vv --junitxml=/tmp/test.xml -m 'not ccm'"
