@@ -35,7 +35,10 @@ fi
 make clean
 
 # Destroy All VMs on exit
-trap 'make clean' EXIT
+function cleanup() {
+  make clean
+}
+trap cleanup EXIT
 
 # Deploy
 make
@@ -44,7 +47,11 @@ make
 make postflight
 
 # Cleanup hosts on exit
-trap 'make clean; make clean-hosts' EXIT
+function cleanup2() {
+  make clean-hosts
+  cleanup
+}
+trap cleanup2 EXIT
 
 # Setup /etc/hosts (password required)
 make hosts
@@ -57,18 +64,16 @@ DCOS_CLI="$(ci/dcos-install-cli.sh)"
 echo "${DCOS_CLI}"
 
 # Delete CLI on exit
-function cleanup() {
+function cleanup3() {
   # only use sudo if required
   if [[ -w "$(dirname "${DCOS_CLI}")" ]]; then
     rm -rf "${DCOS_CLI}"
   else
     sudo rm -rf "${DCOS_CLI}"
   fi
-  # Burninate Everything!
-  make clean
-  make clean-hosts
+  cleanup2
 }
-trap cleanup EXIT
+trap cleanup3 EXIT
 
 # Create User
 DCOS_USER="test@example.com"
@@ -91,8 +96,13 @@ curl --fail --location --silent --show-error --verbose -H "Authorization: token=
 # TODO: only required for OSS DC/OS
 ci/dcos-create-user.sh "albert@bekstil.net"
 
+# Delete CLI on exit
+function cleanup4() {
+  # Copy out test results
+  docker cp dcos-docker-master1:/tmp/test.xml test.xml || true
+  cleanup3
+}
+trap cleanup4 EXIT
+
 # Integration tests
 make test DCOS_PYTEST_CMD="py.test -vv --junitxml=/tmp/test.xml"
-
-# Copy out test results
-docker cp dcos-docker-master1:/tmp/test.xml test.xml
