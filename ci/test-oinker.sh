@@ -48,4 +48,4 @@ dcos package uninstall cassandra
 
 # Uninstall Cassandra framework
 dcos node ssh --master-proxy --leader --user=root --option StrictHostKeyChecking=no --option IdentityFile=$(pwd)/genconf/ssh_key \
-  docker run mesosphere/janitor /janitor.py -r cassandra-role -p cassandra-principal -z dcos-service-cassandra
+  "docker run mesosphere/janitor /janitor.py -r cassandra-role -p cassandra-principal -z dcos-service-cassandra"
