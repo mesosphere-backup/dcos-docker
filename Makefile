@@ -286,15 +286,20 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) -r $(SBIN_DIR)
 	$(RM) dcos-genconf.*.tar
 
-test: ips ## executes the test script on a master
-	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 \
-		bash -c -o errexit -o nounset -o pipefail "\
-			source /opt/mesosphere/active/dcos-integration-test/util/test_env.export && \
-			export SLAVE_HOSTS='$(subst ${space},${comma},$(AGENT_IPS))' && \
-			export PUBLIC_SLAVE_HOSTS='$(subst ${space},${comma},$(PUBLIC_AGENT_IPS))' && \
-			cd '$(DCOS_PYTEST_DIR)' && \
-			$(DCOS_PYTEST_CMD) \
-		"
+# Use SSH to execute tests because docker run/exec has a bug that breaks unbuffered pytest output.
+# https://github.com/moby/moby/issues/8755 - Fixed in Docker 17.06+
+test: ips ## Executes the integration tests
+	@ssh -i $(CURDIR)/genconf/ssh_key -l root -p 22 -o StrictHostKeyChecking=no $(firstword $(MASTER_IPS)) " \
+		set -o errexit -o nounset -o pipefail && \
+        source /opt/mesosphere/environment.export && \
+        source /opt/mesosphere/active/dcos-integration-test/util/test_env.export || \
+          source /opt/mesosphere/active/dcos-integration-test/test_env.export || \
+            true && \
+        export SLAVE_HOSTS='$(subst ${space},${comma},$(AGENT_IPS))' && \
+        export PUBLIC_SLAVE_HOSTS='$(subst ${space},${comma},$(PUBLIC_AGENT_IPS))' && \
+        cd '$(DCOS_PYTEST_DIR)' && \
+        $(DCOS_PYTEST_CMD) \
+    "
 
 hosts: ## Creates entries in /etc/hosts
 	@echo "Before:"
@@ -341,8 +346,8 @@ docker run -dt --privileged \
 	$(3) \
 	--name $(1)$(2) \
 	-e "container=$(1)$(2)" \
-	-e DCOS_PYTEST_DIR=$(DCOS_PYTEST_DIR) \
-	-e DCOS_PYTEST_CMD=$(DCOS_PYTEST_CMD) \
+	-e DCOS_PYTEST_DIR='$(DCOS_PYTEST_DIR)' \
+	-e DCOS_PYTEST_CMD='$(DCOS_PYTEST_CMD)' \
 	-e DCOS_NUM_AGENTS=$(ALL_AGENTS) \
 	-e DCOS_NUM_MASTERS=$(MASTERS) \
 	--hostname $(1)$(2) \
