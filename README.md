@@ -10,7 +10,7 @@ DC/OS Docker is designed to optimize development cycle time. For a more producti
 
 ## Issue Tracking
 
-- Issue tracking is in [DCOS JIRA](https://jira.mesosphere.com/issues/?jql=project%20%3D%20DCOS_OSS%20AND%20component%20%3D%20dcos-docker).
+- Issue tracking is in [DCOS JIRA](https://jira.mesosphere.com/issues/?jql=project%20%3D%20DCOS_OSS%20AND%20component%20%3D%20dcos-docker%20AND%20status%20%3D%20Open%20).
 - Remember to make a DC/OS JIRA account and login so you can get update notifications!
 
 ## Caveats
