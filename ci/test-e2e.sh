@@ -30,6 +30,9 @@ docker --version
 jq --version
 echo "${BASH_VERSINFO[@]}"
 
+# Check for running containers
+docker ps
+
 # Default to latest known version unless DCOS_VERSION is specified
 if [[ -z "${DCOS_VERSION:-}" ]]; then
   bash dcos_generate_config.sh --version
