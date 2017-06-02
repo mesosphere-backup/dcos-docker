@@ -80,8 +80,17 @@ TMPFS_MOUNTS := \
 	--tmpfs /tmp:rw,exec,nosuid,size=2097152k
 CERT_MOUNTS := \
 	-v $(CERTS_DIR):/etc/docker/certs.d
-HOME_MOUNTS := \
+
+# The home directory can be mounted as a development convenience.
+# However, on some platforms, where $(HOME) is not set, we default to not mounting anything.
+# Otherwise a mount of `::ro` would be attempted.
+ifdef HOME
+    HOME_MOUNTS := \
 	-v $(HOME):$(HOME):ro
+else
+    HOME_MOUNTS :=
+endif
+
 # if this session isn't interactive, then we don't want to allocate a
 # TTY, which would fail, but if it is interactive, we do want to attach
 # so that the user can send e.g. ^C through.
