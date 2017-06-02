@@ -28,7 +28,7 @@ cd "${project_dir}"
 # Log dependency versions
 docker --version
 jq --version
-echo ${BASH_VERSINFO[@]
+echo "${BASH_VERSINFO[@]}"
 
 # Default to latest known version unless DCOS_VERSION is specified
 if [[ -z "${DCOS_VERSION:-}" ]]; then
