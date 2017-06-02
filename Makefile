@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all vagrant build build-all start postflight master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice
+.PHONY: all vagrant build build-all start postflight master agent public_agent installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
 
 # Set the number of DC/OS masters.
 MASTERS := 1

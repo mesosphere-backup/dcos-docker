@@ -1,0 +1,36 @@
+{
+    "id": "/registry-example-app",
+    "instances": 3,
+    "cpus": 0.2,
+    "mem": 64,
+    "container": {
+        "type": "DOCKER",
+        "docker": {
+            "image": "registry.marathon.l4lb.thisdcos.directory:5000/nginx",
+            "forcePullImage": false,
+            "privileged": false,
+            "network": "BRIDGE",
+            "portMappings": [
+                {
+                    "containerPort": 80,
+                    "protocol": "tcp",
+                    "name": "registry-example-app",
+                    "servicePort": 10101,
+                    "labels": {
+                        "VIP_0": "/registry-example-app:80"
+                    }
+                }
+            ]
+        }
+    },
+    "labels": {
+        "HAPROXY_GROUP": "external"
+    },
+    "portDefinitions": [
+        {
+            "port": 10101,
+            "protocol": "tcp"
+        }
+    ],
+    "requirePorts": false
+}
