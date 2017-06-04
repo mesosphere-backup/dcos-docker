@@ -36,7 +36,6 @@ The support for macOS as a host is experimental.
 > **NOTE:**  Docker for Mac support is experimental. Use Vagrant for a fully supported configuration.
 
 - [Docker for Mac](https://docs.docker.com/docker-for-mac/) 1.13.1+
-  - overlay or aufs storage driver (recommended). See [Storage Driver](#storage-driver) for more details.
   - 6GB Memory (recommended). See [Docker for Mac advanced config](https://docs.docker.com/docker-for-mac/#advanced) for more details.
 - make
 - git
