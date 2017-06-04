@@ -191,10 +191,6 @@ or the script will terminate.
 
 To check the current storage driver, use `docker info --format "{{json .Driver}}"`.
 
-To change the storage driver on Docker for Mac to `overlay`, go to Docker >
-Preferences > Daemon Advanced and add `"storage-driver" : "overlay"` to the
-configuration file.  Then click "Apply & Restart".
-
 ## Settings
 
 ### Changing the number of masters or agents
