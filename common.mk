@@ -15,7 +15,7 @@ DOCKER_IMAGE := mesosphere/dcos-docker
 # Variable to set the correct Docker soragedriver to the currently running
 # soragedriver. This makes docker in docker work more efficiently.
 DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(shell docker info 2>/dev/null | grep "Storage Driver" | sed 's/.*: //'))
-ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay aufs))
+ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay aufs overlay2))
 $(error Only `overlay` and `aufs` storage drivers are supported for DinD. Please check README.md for details)
 endif
 
