@@ -1,6 +1,6 @@
 FROM mesosphere/dcos-docker:base
 
-ENV DOCKER_VERSION 1.11.2
+ENV DOCKER_VERSION 1.13.1
 ENV TERM xterm
 ENV LANG en_US.UTF-8
 
