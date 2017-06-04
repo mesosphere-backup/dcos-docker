@@ -180,10 +180,10 @@ $ docker exec -it dcos-docker-master1 bash
 ## Storage Driver
 
 There is no requirement on the hosts storage driver type, but the docker daemon
-running inside docker container supports only `aufs` and `overlay`. The loopback
-devicemapper may be problematic when it comes to loopback devices - they may not
-be properly cleaned up and thus prevent docker daemon from starting. YMMV
-though.
+running inside docker container supports only `aufs`, `overlay`, and
+`overlay2`. The loopback devicemapper may be problematic when it comes to
+loopback devices - they may not be properly cleaned up and thus prevent docker
+daemon from starting. YMMV though.
 
 Unless user specifies the storage driver using `DOCKER_STORAGEDRIVER` env variable,
 the script tries to use the same one that the host uses. It detects it using
@@ -191,10 +191,6 @@ the script tries to use the same one that the host uses. It detects it using
 or the script will terminate.
 
 To check the current storage driver, use `docker info --format "{{json .Driver}}"`.
-
-On Docker for Mac, the default driver is `overlay2`, which is not supported.
-Therefore, it is necessary to either set `DOCKER_STORAGEDRIVER` or to change the
-host storage driver.
 
 To change the storage driver on Docker for Mac to `overlay`, go to Docker >
 Preferences > Daemon Advanced and add `"storage-driver" : "overlay"` to the
