@@ -9,7 +9,6 @@ SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm
 MASTER_CTR:= dcos-docker-master
 AGENT_CTR := dcos-docker-agent
 PUBLIC_AGENT_CTR := dcos-docker-pubagent
-INSTALLER_CTR := dcos-docker-installer
 DOCKER_IMAGE := mesosphere/dcos-docker
 
 # Variable to set the correct Docker graphdriver to the currently running
