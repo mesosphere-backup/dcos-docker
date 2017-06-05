@@ -23,7 +23,10 @@ CONFIG_FILE := $(CURDIR)/genconf/config.yaml
 DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh
 DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
 INSTALLER_PORT := 9000
-INSTALLER_CMD := PORT=${INSTALLER_PORT} bash $(DCOS_GENERATE_CONFIG_PATH) --offline -v
+INSTALLER_CMD := \
+	PORT=${INSTALLER_PORT} \
+	DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR} \
+	bash $(DCOS_GENERATE_CONFIG_PATH) --offline -v
 
 # Bootstrap variables
 BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
