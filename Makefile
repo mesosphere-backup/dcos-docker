@@ -14,21 +14,26 @@ PUBLIC_AGENTS := 1
 
 ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
 
-# Distro to test against
+# Distro to use as the OS for the "node" containers
 DISTRO := centos-7
 MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
 
-# Variables for the files that get generated with the correct configurations.
+# Installer variables
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
-SERVICE_DIR := $(CURDIR)/include/systemd
 DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh
 DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
+INSTALLER_PORT := 9000
+INSTALLER_CMD := PORT=${INSTALLER_PORT} bash $(DCOS_GENERATE_CONFIG_PATH) --offline -v
+
+# Bootstrap variables
 BOOTSTRAP_GENCONF_PATH := $(CURDIR)/genconf/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
 # Detect default resolvers inside a docker container.
 RESOLVERS := $(shell docker run --rm alpine cat /etc/resolv.conf | grep '^nameserver.*' | tr -s ' ' | cut -d' ' -f2 | paste -sd ' ' -)
 
+# Local docker systemd service variables
+SERVICE_DIR := $(CURDIR)/include/systemd
 DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 
 SBIN_DIR := $(CURDIR)/include/sbin
@@ -249,15 +254,15 @@ registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos mast
 genconf: start $(CONFIG_FILE) ## Run the DC/OS installer with --genconf.
 	$(RM) dcos-genconf.*.tar ## Remove tar files from previous runs;  otherwise we might skip building Docker image
 	@echo "+ Running genconf"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --genconf --offline -v
+	$(INSTALLER_CMD) --genconf
 
 preflight: genconf ## Run the DC/OS installer with --preflight.
 	@echo "+ Running preflight"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --preflight --offline -v
+	$(INSTALLER_CMD) --preflight
 
 deploy: preflight ## Run the DC/OS installer with --deploy.
 	@echo "+ Running deploy"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --deploy --offline -v
+	$(INSTALLER_CMD) --deploy
 
 install: VOLUME_MOUNTS += $(BOOTSTRAP_VOLUME_MOUNT)
 install: genconf ## Install DC/OS using "advanced" method
@@ -271,7 +276,7 @@ install: genconf ## Install DC/OS using "advanced" method
 
 web: preflight ## Run the DC/OS installer with --web.
 	@echo "+ Running web"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --web --offline -v
+	$(INSTALLER_CMD) --web
 
 clean-certs: ## Remove all the certs generated for the registry.
 	$(RM) -r $(CERTS_DIR)

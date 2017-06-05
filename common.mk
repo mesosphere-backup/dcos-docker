@@ -19,8 +19,6 @@ ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay aufs))
 $(error Only `overlay` and `aufs` storage drivers are supported for DinD. Please check README.md for details)
 endif
 
-DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
-
 # Settings for test command
 DCOS_PYTEST_DIR := /opt/mesosphere/active/dcos-integration-test/
 DCOS_PYTEST_CMD := py.test -vv
