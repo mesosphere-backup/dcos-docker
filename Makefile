@@ -294,6 +294,7 @@ clean: clean-certs clean-containers clean-slice ## Stops all containers and remo
 	$(RM) -r $(SSH_DIR)
 	$(RM) -r $(SBIN_DIR)
 	$(RM) dcos-genconf.*.tar
+	$(RM) -r $(SERVICE_DIR)
 
 # Use SSH to execute tests because docker run/exec has a bug that breaks unbuffered pytest output.
 # https://github.com/moby/moby/issues/8755 - Fixed in Docker 17.06+
