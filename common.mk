@@ -10,6 +10,7 @@ MASTER_CTR:= dcos-docker-master
 AGENT_CTR := dcos-docker-agent
 PUBLIC_AGENT_CTR := dcos-docker-pubagent
 INSTALLER_CTR := dcos-docker-installer
+INSTALLER_PORT := 9000
 DOCKER_IMAGE := mesosphere/dcos-docker
 
 # Variable to set the correct Docker graphdriver to the currently running
