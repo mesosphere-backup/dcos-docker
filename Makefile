@@ -249,15 +249,15 @@ registry: $(CLIENT_CERT) ## Start a docker registry with certs in the mesos mast
 genconf: start $(CONFIG_FILE) ## Run the DC/OS installer with --genconf.
 	$(RM) dcos-genconf.*.tar ## Remove tar files from previous runs;  otherwise we might skip building Docker image
 	@echo "+ Running genconf"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --genconf --offline -v
+	@export PORT=${INSTALLER_PORT}; export DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR}; bash $(DCOS_GENERATE_CONFIG_PATH) --genconf --offline -v
 
 preflight: genconf ## Run the DC/OS installer with --preflight.
 	@echo "+ Running preflight"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --preflight --offline -v
+	@export PORT=${INSTALLER_PORT}; export DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR}; bash $(DCOS_GENERATE_CONFIG_PATH) --preflight --offline -v
 
 deploy: preflight ## Run the DC/OS installer with --deploy.
 	@echo "+ Running deploy"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --deploy --offline -v
+	@export PORT=${INSTALLER_PORT}; export DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR}; bash $(DCOS_GENERATE_CONFIG_PATH) --deploy --offline -v
 
 install: VOLUME_MOUNTS += $(BOOTSTRAP_VOLUME_MOUNT)
 install: genconf ## Install DC/OS using "advanced" method
@@ -271,7 +271,7 @@ install: genconf ## Install DC/OS using "advanced" method
 
 web: preflight ## Run the DC/OS installer with --web.
 	@echo "+ Running web"
-	@bash $(DCOS_GENERATE_CONFIG_PATH) --web --offline -v
+	@export PORT=${INSTALLER_PORT}; export DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR}; bash $(DCOS_GENERATE_CONFIG_PATH) --web --offline -v
 
 clean-certs: ## Remove all the certs generated for the registry.
 	$(RM) -r $(CERTS_DIR)
