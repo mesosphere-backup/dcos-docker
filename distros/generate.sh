@@ -87,22 +87,26 @@ for version in "${versions[@]}"; do
 		packages=( "${packages[@]/openssh-client/openssh-clients}" )
 	fi
 
+	# normalize array: strip duplicate spaces; trim spaces; remove blank lines; spaces to linebreaks
+	IFS=$'\n' packages=( $(echo -e "${packages[*]}" | sed -e 's/  */ /g' -e 's/^ *//g' -e 's/ *$//g' -e '/^[:space:]*$/d' | tr ' ' "\n" ) )
+
+	# sort array
 	IFS=$'\n' sorted=($(sort <<<"${packages[*]}"))
 
 	case "$distro" in
 		centos|rhel)
 			echo "RUN yum install -y \\" >> "$version/Dockerfile"
-			for p in ${sorted[*]}; do echo -e "	   $p \\" >> "$version/Dockerfile"; done;
+			for p in ${sorted[*]}; do echo -e "		$p \\" >> "$version/Dockerfile"; done
 			;;
 		fedora)
 			echo "RUN dnf install -y \\" >> "$version/Dockerfile"
-			for p in ${sorted[*]}; do echo -e "	   $p \\" >> "$version/Dockerfile"; done
+			for p in ${sorted[*]}; do echo -e "		$p \\" >> "$version/Dockerfile"; done
 			;;
 		debian|ubuntu)
-		echo "RUN apt-get update \\" >> "$version/Dockerfile"
-		echo "	&& apt-get install -y \\" >> "$version/Dockerfile"
-		for p in ${sorted[*]}; do echo -e "		$p \\" >> "$version/Dockerfile"; done
-		echo "	&& rm -rf /var/lib/apt/lists/* \\" >> "$version/Dockerfile"
+			echo "RUN apt-get update \\" >> "$version/Dockerfile"
+			echo "	&& apt-get install -y \\" >> "$version/Dockerfile"
+			for p in ${sorted[*]}; do echo -e "		$p \\" >> "$version/Dockerfile"; done
+			echo "	&& rm -rf /var/lib/apt/lists/* \\" >> "$version/Dockerfile"
 			;;
 		*) ;;
 	esac

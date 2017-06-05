@@ -5,30 +5,30 @@
 FROM centos:7
 
 RUN yum install -y \
-	   bash-completion \
-	   bind-utils \
-	   btrfs-progs \
-	   ca-certificates \
-	   curl \
-	   git \
-	   iproute \
-	   ipset \
-	   iptables \
-	   iputils \
-	   libcgroup \
-	   libselinux-utils \
-	   nano \
-	   net-tools \
-	   openssh-client \
-	   openssh-server \
-	   sudo \
-	   systemd \
-	   tar \
-	   tree \
-	   unzip \
-	   vim \
-	   which \
-	   xz \
+		bash-completion \
+		bind-utils \
+		btrfs-progs \
+		ca-certificates \
+		curl \
+		git \
+		iproute \
+		ipset \
+		iptables \
+		iputils \
+		libcgroup \
+		libselinux-utils \
+		nano \
+		net-tools \
+		openssh-client \
+		openssh-server \
+		sudo \
+		systemd \
+		tar \
+		tree \
+		unzip \
+		vim \
+		which \
+		xz \
 && ( \
 cd /lib/systemd/system/sysinit.target.wants/; \
 for i in *; do \
