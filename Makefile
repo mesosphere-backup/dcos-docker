@@ -478,7 +478,7 @@ echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
 if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
     # DC/OS >= 1.7
-    CMD="/opt/mesosphere/bin/3dt -diag"
+    CMD="/opt/mesosphere/bin/3dt --diag"
     cfg_files=( /opt/mesosphere/packages/3dt*/endpoints_config.json )
     if [ $${#cfg_files[@]} -gt 0 ]; then
         # DC/OS >= 1.8
