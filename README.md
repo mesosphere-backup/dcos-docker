@@ -23,6 +23,8 @@ DC/OS Docker is designed to optimize development cycle time. For a more producti
 DC/OS Docker can be run on Linux, macOS, or on Linux in a VM using Vagrant with VirtualBox.
 The support for macOS as a host is experimental.
 
+If the host Docker storage driver is not `overlay` or `aufs`, see [Storage Driver](#storage-driver) for instructions.
+
 ### Linux
 
 - systemd (recommended) or [no systemd](#non-systemd-host) (experiemental)
@@ -36,7 +38,6 @@ The support for macOS as a host is experimental.
 > **NOTE:**  Docker for Mac support is experimental. Use Vagrant for a fully supported configuration.
 
 - [Docker for Mac](https://docs.docker.com/docker-for-mac/) 1.13.1+
-  - overlay or aufs storage driver (recommended). See [Storage Driver](#storage-driver) for more details.
   - 6GB Memory (recommended). See [Docker for Mac advanced config](https://docs.docker.com/docker-for-mac/#advanced) for more details.
 - make
 - git
@@ -180,10 +181,11 @@ $ docker exec -it dcos-docker-master1 bash
 ## Storage Driver
 
 There is no requirement on the hosts storage driver type, but the docker daemon
-running inside docker container supports only `aufs` and `overlay`. The loopback
-devicemapper may be problematic when it comes to loopback devices - they may not
-be properly cleaned up and thus prevent docker daemon from starting. YMMV
-though.
+running inside docker container by default supports only `aufs` and `overlay`.
+The loopback devicemapper may be problematic when it comes to loopback devices
+they may not be properly cleaned up and thus prevent docker daemon from
+starting. YMMV though. To enable support for `overlay2`, set `DOCKER_VERSION`
+to `1.13.1`.
 
 Unless user specifies the storage driver using `DOCKER_STORAGEDRIVER` env variable,
 the script tries to use the same one that the host uses. It detects it using
@@ -192,9 +194,10 @@ or the script will terminate.
 
 To check the current storage driver, use `docker info --format "{{json .Driver}}"`.
 
-On Docker for Mac, the default driver is `overlay2`, which is not supported.
-Therefore, it is necessary to either set `DOCKER_STORAGEDRIVER` or to change the
-host storage driver.
+On Docker for Mac, the default driver is `overlay2`, which is not supported by
+the default Docker version in the containers.  Therefore, it is necessary to
+either set `DOCKER_STORAGEDRIVER`, or to change the host storage driver, or to
+set `DOCKER_VERSION` to `1.13.1`.
 
 To change the storage driver on Docker for Mac to `overlay`, go to Docker >
 Preferences > Daemon Advanced and add `"storage-driver" : "overlay"` to the
@@ -235,6 +238,20 @@ It is possible to run DC/OS Docker on hosts without systemd.  Set the variable
 changes a Mesos setting. Although this setting works at the time of writing, it is not officially supported by DC/OS and so this feature is experimental.
 
 One problem which may occur when not using `systemd` on the host is that executors and tasks will be killed when the agent is restarted. [A JIRA issue](https://jira.mesosphere.com/browse/DCOS_OSS-1131) tracks making it possible to run DC/OS Docker in a supported manner without `systemd`.
+
+
+### Docker version
+
+By default the containers in the cluster will have Docker version 1.11.2.
+The other supported version is 1.13.1.
+To use this version, you can run:
+
+```console
+$ make DOCKER_VERSION=1.13.1
+```
+
+One feature which is supported by Docker version 1.13.1 but not by version 1.11.2 is the `overlay2` storage driver.
+See [Storage Driver](#storage-driver) for details.
 
 ## Troubleshooting
 
