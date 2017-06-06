@@ -23,8 +23,17 @@ endif
 # Variable to set the correct Docker storage driver to the currently running
 # storage driver. This makes docker in docker work more efficiently.
 DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(shell docker info 2>/dev/null | grep "Storage Driver" | sed 's/.*: //'))
+
+ifeq ($(DOCKER_VERSION),1.11.2)
 ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay aufs))
-$(error Only `overlay` and `aufs` storage drivers are supported for DinD. Please check README.md for details)
+$(error Only `overlay` and `aufs` storage drivers are supported for DinD for Docker version 1.11.2. Please check README.md for details)
+endif
+endif
+
+ifeq ($(DOCKER_VERSION),1.13.1)
+ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay overlay2 aufs))
+$(error Only `overlay`, `overlay2`, and `aufs` storage drivers are supported for DinD for Docker version 1.13.1. Please check README.md for details)
+endif
 endif
 
 # Settings for test command
