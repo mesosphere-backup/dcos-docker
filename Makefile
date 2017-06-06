@@ -16,7 +16,7 @@ ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
 
 # Distro to use as the OS for the "node" containers
 DISTRO := centos-7
-MAIN_DOCKERFILE := $(CURDIR)/Dockerfile
+MAIN_DOCKERFILE := $(CURDIR)/Dockerfile-Docker-${DOCKER_VERSION}
 
 # Installer variables
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
@@ -128,7 +128,7 @@ build: generate $(DOCKER_SERVICE_FILE) $(DCOS_POSTFLIGHT_FILE) $(CURDIR)/genconf
 	@$(foreach distro,$(wildcard distros/$(DISTRO)*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
 	@echo "+ Building the dcos-docker image"
 	@docker tag $(DOCKER_IMAGE):$(DISTRO) $(DOCKER_IMAGE):base
-	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
+	@docker build --rm --force-rm -t $(DOCKER_IMAGE) --file $(MAIN_DOCKERFILE) .
 
 
 build-all: generate ## Build the Dockerfiles for all the various distros.
