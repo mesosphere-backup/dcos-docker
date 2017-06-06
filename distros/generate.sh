@@ -88,7 +88,7 @@ for version in "${versions[@]}"; do
 	fi
 
 	# normalize array: strip duplicate spaces; trim spaces; remove blank lines; spaces to linebreaks
-	IFS=$'\n' packages=( $(echo -e "${packages[*]}" | sed -e 's/  */ /g' -e 's/^ *//g' -e 's/ *$//g' -e '/^[:space:]*$/d' | tr ' ' "\n" ) )
+	IFS=$'\n' packages=( $(echo -e "${packages[*]}" | sed -e 's/  */ /g' -e 's/^ *//g' -e 's/ *$//g' -e '/^[[:space:]]*$/d' | tr ' ' "\n" ) )
 
 	# sort array
 	IFS=$'\n' sorted=($(sort <<<"${packages[*]}"))
