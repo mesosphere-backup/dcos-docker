@@ -14,6 +14,12 @@ DOCKER_IMAGE := mesosphere/dcos-docker
 
 DOCKER_VERSION := 1.11.2
 
+ifneq ($(DOCKER_VERSION),1.11.2)
+ifneq ($(DOCKER_VERSION),1.13.1)
+$(error Only Docker versions 1.11.2 and 1.13.1 are supported)
+endif
+endif
+
 # Variable to set the correct Docker graphdriver to the currently running
 # graphdriver. This makes docker in docker work more efficiently.
 DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(shell docker info 2>/dev/null | grep "Storage Driver" | sed 's/.*: //'))
