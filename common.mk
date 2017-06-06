@@ -12,6 +12,8 @@ PUBLIC_AGENT_CTR := dcos-docker-pubagent
 INSTALLER_CTR := dcos-docker-installer
 DOCKER_IMAGE := mesosphere/dcos-docker
 
+DOCKER_VERSION := 1.11.2
+
 # Variable to set the correct Docker graphdriver to the currently running
 # graphdriver. This makes docker in docker work more efficiently.
 DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(shell docker info 2>/dev/null | grep "Storage Driver" | sed 's/.*: //'))
