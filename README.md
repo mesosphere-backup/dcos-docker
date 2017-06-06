@@ -23,7 +23,7 @@ DC/OS Docker is designed to optimize development cycle time. For a more producti
 DC/OS Docker can be run on Linux, macOS, or on Linux in a VM using Vagrant with VirtualBox.
 The support for macOS as a host is experimental.
 
-If the host Docker storage driver is not `overlay` or `aufs`, see [Storage Driver](#storage-driver) for instructions.
+Host Docker storage drivers of `overlay` and `aufs` are supported automatically. For anything else, see [Storage Driver](#storage-driver) for config instructions.
 
 ### Linux
 
@@ -35,7 +35,7 @@ If the host Docker storage driver is not `overlay` or `aufs`, see [Storage Drive
 
 ### Mac
 
-> **NOTE:**  Docker for Mac support is experimental. Use Vagrant for a fully supported configuration.
+> **NOTE:**  Docker for Mac support is experimental. Use Vagrant for a better tested configuration.
 
 - [Docker for Mac](https://docs.docker.com/docker-for-mac/) 1.13.1+
   - 6GB Memory (recommended). See [Docker for Mac advanced config](https://docs.docker.com/docker-for-mac/#advanced) for more details.
@@ -180,28 +180,34 @@ $ docker exec -it dcos-docker-master1 bash
 
 ## Storage Driver
 
-There is no requirement on the hosts storage driver type, but the docker daemon
-running inside docker container by default supports only `aufs` and `overlay`.
-The loopback devicemapper may be problematic when it comes to loopback devices
-they may not be properly cleaned up and thus prevent docker daemon from
-starting. YMMV though. To enable support for `overlay2`, set `DOCKER_VERSION`
-to `1.13.1`.
+By default, the docker daemon in the DC/OS node containers is configured to use
+the same storage driver as the host docker daemon, but this method is only verified
+to work for `aufs` and `overlay`. Other storage drivers may work, but are not tested.
+They can be configured manually by setting the `DOCKER_STORAGEDRIVER` make variable.
 
-Unless user specifies the storage driver using `DOCKER_STORAGEDRIVER` env variable,
-the script tries to use the same one that the host uses. It detects it using
-`docker info` command. The resulting storage driver must be among supported ones,
-or the script will terminate.
+To check the current host storage driver, use `docker info --format "{{json .Driver}}"`.
 
-To check the current storage driver, use `docker info --format "{{json .Driver}}"`.
+### Loopback
 
-On Docker for Mac, the default driver is `overlay2`, which is not supported by
-the default Docker version in the containers.  Therefore, it is necessary to
-either set `DOCKER_STORAGEDRIVER`, or to change the host storage driver, or to
-set `DOCKER_VERSION` to `1.13.1`.
+The loopback `devicemapper` storage driver may cause loopback devices to not be
+properly cleaned up and thus prevent the docker daemon from starting. YMMV though.
 
-To change the storage driver on Docker for Mac to `overlay`, go to Docker >
-Preferences > Daemon Advanced and add `"storage-driver" : "overlay"` to the
-configuration file.  Then click "Apply & Restart".
+### Overlay2
+
+Newer versions of docker (17+) default to the `overlay2` storage driver. Since `overlay2`
+is not supported by Docker 1.11.2 (the default version in the "node" containers), you must
+also specify a newer version of Docker to use in the "node" containers:
+
+```
+make DOCKER_STORAGEDRIVER=overlay2 DOCKER=1.13.1
+```
+
+Alternatively, Docker itself can be configured to use `overlay`.
+
+To configure Docker for Mac, go to `Docker > Preferences > Daemon Advanced`, add
+`"storage-driver" : "overlay"` to the configuration file, and click `Apply & Restart`.
+
+To configure other versions of Docker, see the Docker docs appropriate to your version.
 
 ## Settings
 
@@ -242,15 +248,15 @@ One problem which may occur when not using `systemd` on the host is that executo
 
 ### Docker version
 
-By default the containers in the cluster will have Docker version 1.11.2.
-The other supported version is 1.13.1.
-To use this version, you can run:
+By default the "node" containers will include Docker 1.11.2.
+Docker 1.13.1 is also supported, but must be configured:
 
 ```console
 $ make DOCKER_VERSION=1.13.1
 ```
 
-One feature which is supported by Docker version 1.13.1 but not by version 1.11.2 is the `overlay2` storage driver.
+One reason to use Docker 1.13.1 might be to use the `overlay2` storage driver,
+which is not supported by Docker 1.11.2.
 See [Storage Driver](#storage-driver) for details.
 
 ## Troubleshooting
