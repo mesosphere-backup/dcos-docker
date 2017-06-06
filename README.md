@@ -6,7 +6,7 @@ Each container on the host emulates a DC/OS node, using Docker-in-Docker to run 
 
 DC/OS Docker is designed to optimize development cycle time. For a more production-like local experience, see [DC/OS Vagrant](https://github.com/dcos/dcos-vagrant) which runs each node in its own VM.
 
-[![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=dcos-docker-test-e2e)](https://jenkins.mesosphere.com/service/jenkins/view/dcos-docker/job/dcos-docker-test-e2e/)
+[![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=dcos-docker-test-e2e-matrix)](https://jenkins.mesosphere.com/service/jenkins/view/dcos-docker/job/dcos-docker-test-e2e-matrix/)
 
 ## Issue Tracking
 
