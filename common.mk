@@ -12,6 +12,7 @@ PUBLIC_AGENT_CTR := dcos-docker-pubagent
 INSTALLER_CTR := dcos-docker-installer
 DOCKER_IMAGE := mesosphere/dcos-docker
 
+# Version of Docker to install on the DC/OS nodes
 DOCKER_VERSION := 1.11.2
 
 ifneq ($(DOCKER_VERSION),1.11.2)

@@ -15,17 +15,5 @@ RUN curl -sSL "https://get.docker.com/builds/Linux/x86_64/docker-${DOCKER_VERSIO
 	&& ln -vf /bin/true /usr/sbin/modprobe \
 	&& ln -vf /bin/true /sbin/modprobe
 
-# systemd needs a different stop signal
-STOPSIGNAL SIGRTMIN+3
-
 COPY include/systemd/docker.service /lib/systemd/system/
-RUN systemctl enable docker.service \
-	&& systemctl enable sshd.service || true
-
-COPY include/sbin/dcos-postflight /usr/local/sbin/
-
-COPY genconf /genconf
-COPY include/ssh /root/.ssh
-RUN cp /root/.ssh/id_*.pub /root/.ssh/authorized_keys
-
-CMD ["/sbin/init"]
+RUN systemctl enable docker.service || true

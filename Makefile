@@ -16,7 +16,6 @@ ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
 
 # Distro to use as the OS for the "node" containers
 DISTRO := centos-7
-MAIN_DOCKERFILE := $(CURDIR)/Dockerfile-Docker-${DOCKER_VERSION}
 
 # Installer variables
 CONFIG_FILE := $(CURDIR)/genconf/config.yaml
@@ -124,18 +123,24 @@ open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
 
 build: generate $(DOCKER_SERVICE_FILE) $(DCOS_POSTFLIGHT_FILE) $(CURDIR)/genconf/ssh_key ## Build the docker image that will be used for the containers.
-	@echo "+ Building the $(DISTRO) base image"
-	@$(foreach distro,$(wildcard distros/$(DISTRO)*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
+	@echo "+ Building the base $(DISTRO) image"
+	@$(foreach distro,$(wildcard build/base/$(DISTRO)*/Dockerfile),$(call build_base_image,$(word 3,$(subst /, ,$(distro)))))
+	@docker tag $(DOCKER_IMAGE):base-$(DISTRO) $(DOCKER_IMAGE):base
+	@echo "+ Building the base-docker $(DOCKER_VERSION) image"
+	@$(call build_base_docker_image,$(DOCKER_VERSION))
+	@docker tag $(DOCKER_IMAGE):base-docker-$(DOCKER_VERSION) $(DOCKER_IMAGE):base-docker
 	@echo "+ Building the dcos-docker image"
-	@docker tag $(DOCKER_IMAGE):$(DISTRO) $(DOCKER_IMAGE):base
-	@docker build --rm --force-rm -t $(DOCKER_IMAGE) --file $(MAIN_DOCKERFILE) .
+	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
 
-build-all: generate ## Build the Dockerfiles for all the various distros.
-	@$(foreach distro,$(wildcard distros/*/Dockerfile),$(call build_distro_image,$(word 2,$(subst /, ,$(distro)))))
+build-all: generate ## Build the Dockerfiles for all the various base distros and docker versions.
+	@echo "+ Building the base images"
+	@$(foreach distro,$(wildcard build/base/*/Dockerfile),$(call build_base_image,$(word 3,$(subst /, ,$(distro)))))
+	@echo "+ Building the base-docker images"
+	@$(foreach version,$(wildcard build/base-docker/*/Dockerfile),$(call build_base_docker_image,$(word 3,$(subst /, ,$(distro)))))
 
-generate: $(CURDIR)/distros ## generate the Dockerfiles for all the distros.
-	@$(CURDIR)/distros/generate.sh
+generate: $(CURDIR)/build/base ## generate the Dockerfiles for all the base distros.
+	@$(CURDIR)/build/base/generate.sh
 
 $(SSH_DIR):
 	@mkdir -p $@
@@ -398,11 +403,17 @@ cp $(CLIENT_KEY) $(CERTS_DIR)/$(1)/;
 cp $(ROOTCA_CERT) $(CERTS_DIR)/$(1)/$(1).crt;
 endef
 
-# Define the function for building a distro's Dockerfile.
-# @param distro	  Distro to build the Dockerfile for.
-define build_distro_image
-docker build --rm --force-rm -t $(DOCKER_IMAGE):$(1) distros/$(1)/;
-docker tag  $(DOCKER_IMAGE):$(1) $(DOCKER_IMAGE):$(firstword $(subst -, ,$(1)));
+# Define the function for building a base distro's Dockerfile.
+# @param distro	  Distro to build the base Dockerfile for.
+define build_base_image
+docker build --rm --force-rm -t $(DOCKER_IMAGE):base-$(1) build/base/$(1)/;
+docker tag  $(DOCKER_IMAGE):base-$(1) $(DOCKER_IMAGE):$(firstword $(subst -, ,$(1)));
+endef
+
+# Define the function for building a base-docker Dockerfile.
+# @param version	  Docker version to include.
+define build_base_docker_image
+docker build --rm --force-rm -t $(DOCKER_IMAGE):base-docker-$(1) --file build/base-docker/$(1)/Dockerfile .;
 endef
 
 # Define the template for the docker.service systemd unit file.
