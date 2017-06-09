@@ -156,6 +156,10 @@ start: build clean-certs $(CERTS_DIR) clean-containers master agent public_agent
 postflight: ## Polls DC/OS until it is healthy (5m timeout)
 	@docker exec $(INTERACTIVE) $(MASTER_CTR)1 dcos-postflight
 
+postflight-cli: ## Runs the DC/OS installer with --postflight.
+	echo "+ Running postflight"
+	$(INSTALLER_CMD) --postflight
+
 master: ## Starts the containers for DC/OS masters.
 	@echo "+ Starting master nodes"
 	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
