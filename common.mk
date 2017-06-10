@@ -23,7 +23,9 @@ endif
 
 # Variable to set the correct Docker storage driver to the currently running
 # storage driver. This makes docker in docker work more efficiently.
-DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(shell docker info 2>/dev/null | grep "Storage Driver" | sed 's/.*: //'))
+# Pipe to echo to remove surrounding quotes.
+HOST_DOCKER_STORAGEDRIVER := $(shell docker info --format "{{json .Driver}}" | xargs echo)
+DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(HOST_DOCKER_STORAGEDRIVER))
 
 ifeq ($(DOCKER_VERSION),1.11.2)
 ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay aufs))
