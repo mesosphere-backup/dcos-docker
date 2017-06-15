@@ -487,13 +487,17 @@ function await() {
 CMD="curl --insecure --fail --location --silent http://127.0.0.1/"
 echo "Polling web server ($${TIMEOUT_SECONDS}s timeout)..." >&2
 await
-if [[ -e "/opt/mesosphere/bin/3dt" ]]; then
-    # DC/OS >= 1.7
+if [[ -e "/opt/mesosphere/bin/dcos-diagnostics" ]]; then
+    # DC/OS >= 1.10
+    CMD="/opt/mesosphere/bin/dcos-diagnostics --diag"
+elif [[ -e "/opt/mesosphere/bin/3dt" ]]; then
+    # DC/OS <= 1.9
     CMD="/opt/mesosphere/bin/3dt --diag"
+    # 3dt --diag will complain about missing endpoints_config.json if not
+    # passed explicitly. This error is not influencing the diagnostics status.
+    # This is a bug, which has been fixed in DC/OS >= 1.10
     cfg_files=( /opt/mesosphere/packages/3dt*/endpoints_config.json )
     if [ $${#cfg_files[@]} -gt 0 ]; then
-        # DC/OS >= 1.8
-        # TODO: what if there's more than one? Which should we choose?
         CMD="$${CMD} -endpoint-config=$${cfg_files[0]}"
     fi
 elif [[ -e "/opt/mesosphere/bin/dcos-diagnostics.py" ]]; then
