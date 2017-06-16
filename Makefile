@@ -107,6 +107,8 @@ ifeq ($(HAVE_TTY), 1)
 	INTERACTIVE += -t
 endif
 
+SUPERUSER_PASSWORD_HASH_CMD := $(INSTALLER_CMD) --hash-password $(SUPERUSER_PASSWORD) | tail -1
+
 all: install info ## Runs a full deploy of DC/OS in containers.
 
 vagrant:
@@ -460,7 +462,7 @@ resolvers:
 - $(subst ${space},${newline} ,$(RESOLVERS))
 ssh_port: 22
 ssh_user: root
-superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
+superuser_password_hash: $(shell $(SUPERUSER_PASSWORD_HASH_CMD))
 superuser_username: $(SUPERUSER_USERNAME)
 platform: docker
 check_time: false

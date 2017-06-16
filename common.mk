@@ -1,9 +1,9 @@
 SHELL := /bin/bash
 
-# Set the superuser username
+# Set the superuser username and password
+# These are only used for DC/OS Enterprise.
 SUPERUSER_USERNAME := admin
 SUPERUSER_PASSWORD := admin
-SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
 
 # Variables for the resulting container & image names.
 MASTER_CTR:= dcos-docker-master
