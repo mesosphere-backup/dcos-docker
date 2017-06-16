@@ -2,7 +2,11 @@ SHELL := /bin/bash
 
 # Set the superuser username
 SUPERUSER_USERNAME := admin
-SUPERUSER_PASSWORD := admin
+# The following is a hash of the password `admin`.
+# A hash of a password can be obtained by running the following command:
+#    bash dcos_generate_config.sh --hash-password admin | tail -1
+# The password hash here is escaped.
+# See https://stackoverflow.com/a/7860705 for details on escaping Makefile variables.
 SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
 
 # Variables for the resulting container & image names.
