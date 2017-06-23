@@ -68,7 +68,7 @@ Host Docker storage drivers of `overlay` and `aufs` are supported automatically.
 1. (**Mac-only**) Modify the DC/OS installer to support BSD sed:
 
     ```console
-    sed -i="" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
+    sed -i"" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
     ```
 
     See [Mac Compatible installers](#mac-compatible-installers) for more details.
