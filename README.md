@@ -107,6 +107,19 @@ Host Docker storage drivers of `overlay` and `aufs` are supported automatically.
 
 For other make commands, see `make help`.
 
+## DC/OS Login
+
+### Open Source
+
+Uses OAuth.
+
+### Enterprise
+
+```
+username: admin
+password: admin
+```
+
 ## Network Routing
 
 By default with Vagrant or Docker for Mac, containers are not reachable from the host.
