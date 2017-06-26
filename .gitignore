@@ -1,9 +1,7 @@
 dcos_generate_config.ee.sh
 dcos_generate_config*.sh
-genconf/config.yaml
-genconf/ssh_key
-genconf/serve/
-include
+genconf/
+include/
 .path
 .vagrant/
 dcos-genconf.*.tar

@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+# Polls dcos-download, dcos-setup, dcos-diagnostics, and dcos-adminrouter to determine node install progress.
+
+# null globs required for finding cfg_files
+shopt -s nullglob
+
+# Run the DC/OS diagnostic script for up to the specified number of seconds to ensure
+# we do not return ERROR on a cluster that hasn't fully achieved quorum.
+TIMEOUT_SECONDS="${1:-900}"
+function await() {
+    PREV_STATUS_OUT=""
+    until echo -n "." >&2 && OUT=$(eval "${CMD}" 2>&1) || [[ TIMEOUT_SECONDS -eq 0 ]]; do
+        if [[ -n "${STATUS_CMD}" ]]; then
+        	STATUS_OUT=$(eval "${STATUS_CMD}" 2>&1)
+        	if [[ "${STATUS_OUT}" != "${PREV_STATUS_OUT}" ]]; then
+        	    PREV_STATUS_OUT="${STATUS_OUT}"
+        	    echo >&2 # newline
+        	    echo "${STATUS_OUT}" >&2
+        	fi
+        fi
+        sleep 5
+        let TIMEOUT_SECONDS=TIMEOUT_SECONDS-5
+    done
+    echo " SUCCESS" >&2 # newline
+    RETCODE=$?
+    if [[ "${RETCODE}" != "0" ]]; then
+        echo "DC/OS Unhealthy\\n${OUT}" >&2
+        exit ${RETCODE}
+    fi
+}
+
+echo -n "Polling dcos-download (${TIMEOUT_SECONDS}s timeout)" >&2
+CMD="systemctl status dcos-download | grep 'Main PID:.*status=0/SUCCESS.*'"
+STATUS_CMD=""
+await
+
+echo -n "Polling dcos-setup (${TIMEOUT_SECONDS}s timeout)" >&2
+CMD="systemctl status dcos-setup | grep 'Main PID:.*status=0/SUCCESS.*'"
+STATUS_CMD=""
+await
+
+# Support multiple historical versions of dcos-diagnostics
+if [[ -e "/opt/mesosphere/bin/dcos-diagnostics" ]]; then
+    # DC/OS >= 1.10
+    CMD="/opt/mesosphere/bin/dcos-diagnostics --diag"
+    STATUS_CMD="${CMD} 2>&1 | grep '^\[.*\]:' | sed 's/^\[\(.*\)\]:.*/\1/' | sort | tr '\n' ',' | sed 's/,$//' | xargs echo 'Pending:'"
+elif [[ -e "/opt/mesosphere/bin/3dt" ]]; then
+    # DC/OS <= 1.9
+    CMD="/opt/mesosphere/bin/3dt --diag"
+    # 3dt --diag will complain about missing endpoints_config.json if not
+    # passed explicitly. This error is not influencing the diagnostics status.
+    # This is a bug, which has been fixed in DC/OS >= 1.10
+    cfg_files=( /opt/mesosphere/etc/dcos-3dt-endpoint-config*.json )
+    cfg_files+=( /opt/mesosphere/endpoints_config*.json )
+    cfg_files+=( /opt/mesosphere/etc/endpoints_config*.json )
+    if [ ${#cfg_files[@]} -gt 0 ]; then
+        CMD="${CMD} --endpoint-config=${cfg_files[0]}"
+    fi
+    STATUS_CMD=""
+elif [[ -e "/opt/mesosphere/bin/dcos-diagnostics.py" ]]; then
+    # DC/OS <= 1.6
+    CMD="/opt/mesosphere/bin/dcos-diagnostics.py"
+    STATUS_CMD=""
+else
+    echo "Postflight Failure: dcos-diagnostics not found"
+    exit 1
+fi
+echo -n "Polling dcos-diagnostics (${TIMEOUT_SECONDS}s timeout)" >&2
+await
+
+# Different nodes types serve the API on different ports
+if [[ -f /etc/mesosphere/roles/master ]]; then
+    API_PORT=80 #TODO: 443 if in strict or permissive? (should redirect)
+elif [[ -f /etc/mesosphere/roles/slave ]] || [[ -f /etc/mesosphere/roles/slave_public ]]; then
+    API_PORT=61001 #TODO: 61002 if in strict or permissive? (should redirect)
+else
+    echo "Postflight Failure: unrecognized node type"
+    exit 1
+fi
+echo -n "Polling dcos-adminrouter (${TIMEOUT_SECONDS}s timeout)" >&2
+CMD="curl --insecure --fail --location --silent http://127.0.0.1:${API_PORT}/"
+STATUS_CMD="curl --insecure --fail --location --silent -o /dev/null -w "%{http_code}" http://127.0.0.1:${API_PORT}/"
+await

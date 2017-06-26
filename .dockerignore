@@ -5,8 +5,8 @@ dcos_generate_config*.sh
 examples
 configs
 genconf/config.yaml
-build/
 genconf/serve/
+build/
 .vagrant/
 Vagrantfile
 dcos-genconf.*.tar
