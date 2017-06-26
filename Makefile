@@ -159,12 +159,12 @@ start: build clean-certs $(CERTS_DIR) clean-containers master agent public_agent
 postflight: ## Polls DC/OS until it is healthy (5m timeout)
 	@echo "+ Checking master nodes"
 	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call postflight_container,$(MASTER_CTR),$(NUM)))
-	@echo "DC/OS Healthy (Master Nodes)"
+	@echo "+ DC/OS Healthy (Master Nodes)"
 	@echo "+ Checking agent nodes"
 	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(MASTERS)),$(call postflight_container,$(AGENT_CTR),$(NUM)))
 	@echo "+ Checking public agent nodes"
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(MASTERS)),$(call postflight_container,$(PUBLIC_AGENT_CTR),$(NUM)))
-	@echo "DC/OS Healthy (All Nodes)"
+	@echo "+ DC/OS Healthy (All Nodes)"
 
 master: ## Starts the containers for DC/OS masters.
 	@echo "+ Starting master nodes"
