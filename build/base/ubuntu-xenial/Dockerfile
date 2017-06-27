@@ -50,6 +50,9 @@ done \
 && rm -f /lib/systemd/system/graphical.target.wants/* \
 && ln -vf /lib/systemd/system/multi-user.target /lib/systemd/system/default.target
 
+COPY include/systemd/systemd-journald-init.service /lib/systemd/system/
+RUN systemctl enable systemd-journald-init.service || true
+
 # systemd needs a different stop signal
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]

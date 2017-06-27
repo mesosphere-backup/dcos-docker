@@ -135,6 +135,9 @@ for version in "${versions[@]}"; do
 
 	cat >> "$version/Dockerfile" <<-'EOF'
 
+	COPY include/systemd/systemd-journald-init.service /lib/systemd/system/
+	RUN systemctl enable systemd-journald-init.service || true
+
 	# systemd needs a different stop signal
 	STOPSIGNAL SIGRTMIN+3
 	CMD ["/sbin/init"]

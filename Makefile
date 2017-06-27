@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := all
 include common.mk
 
-.PHONY: all vagrant build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
+.PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
 
 # Set the number of DC/OS masters.
 MASTERS := 1
@@ -39,8 +39,8 @@ RESOLVERS := $(shell docker run --rm alpine cat /etc/resolv.conf | grep '^namese
 # Local docker systemd service variables
 INCLUDE_DIR_SRC := $(CURDIR)/include.src
 INCLUDE_DIR := $(CURDIR)/include
+SERVICE_DIR_SRC := $(INCLUDE_DIR_SRC)/systemd
 SERVICE_DIR := $(INCLUDE_DIR)/systemd
-DOCKER_SERVICE_FILE := $(SERVICE_DIR)/docker.service
 SBIN_DIR_SRC := $(INCLUDE_DIR_SRC)/sbin
 SBIN_DIR := $(INCLUDE_DIR)/sbin
 
@@ -125,18 +125,21 @@ info: ips ## Provides information about the master and agent's ips.
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
 
-build: generate $(DOCKER_SERVICE_FILE) $(GENCONF_DIR)/ip-detect $(SBIN_DIR)/dcos-postflight $(GENCONF_DIR)/ssh_key ## Build the docker image that will be used for the containers.
+build-base: generate $(SERVICE_DIR)/systemd-journald-init.service ## Build the base docker image.
 	@echo "+ Building the base $(DISTRO) image"
 	@$(foreach distro,$(wildcard build/base/$(DISTRO)*/Dockerfile),$(call build_base_image,$(word 3,$(subst /, ,$(distro)))))
 	@docker tag $(DOCKER_IMAGE):base-$(DISTRO) $(DOCKER_IMAGE):base
+
+build-base-docker: build-base $(SERVICE_DIR)/docker.service ## Build the base-docker (base + docker daemon) docker image.
 	@echo "+ Building the base-docker $(DOCKER_VERSION) image"
 	@$(call build_base_docker_image,$(DOCKER_VERSION))
 	@docker tag $(DOCKER_IMAGE):base-docker-$(DOCKER_VERSION) $(DOCKER_IMAGE):base-docker
+
+build: build-base-docker $(GENCONF_DIR)/ip-detect $(SBIN_DIR)/dcos-postflight $(GENCONF_DIR)/ssh_key ## Build the dcos-docker docker image used for all node containers.
 	@echo "+ Building the dcos-docker image"
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
-
-build-all: generate ## Build the Dockerfiles for all the various base distros and docker versions.
+build-all: generate ## Build the base and base-docker images for all permutations of distros and docker versions.
 	@echo "+ Building the base images"
 	@$(foreach distro,$(wildcard build/base/*/Dockerfile),$(call build_base_image,$(word 3,$(subst /, ,$(distro)))))
 	@echo "+ Building the base-docker images"
@@ -210,9 +213,12 @@ $(CONFIG_FILE): ips ## Writes the config file for the currently running containe
 $(SERVICE_DIR): $(INCLUDE_DIR)
 	@mkdir -p $@
 
-$(DOCKER_SERVICE_FILE): $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
+$(SERVICE_DIR)/docker.service: $(SERVICE_DIR) ## Writes the docker service file so systemd can run docker in our containers.
 	$(eval export DOCKER_SERVICE_BODY)
 	echo "$$DOCKER_SERVICE_BODY" > $@
+
+$(SERVICE_DIR)/systemd-journald-init.service: $(SERVICE_DIR) ## Writes the systemd-journald-init service file so /run/log/journal has the correct permissions.
+	@cp $(SERVICE_DIR_SRC)/systemd-journald-init.service $@
 
 $(SBIN_DIR): $(INCLUDE_DIR)
 	@mkdir -p $@
@@ -422,7 +428,7 @@ endef
 # Define the function for building a base distro's Dockerfile.
 # @param distro	  Distro to build the base Dockerfile for.
 define build_base_image
-docker build --rm --force-rm -t $(DOCKER_IMAGE):base-$(1) build/base/$(1)/;
+docker build --rm --force-rm -t $(DOCKER_IMAGE):base-$(1) --file build/base/$(1)/Dockerfile .;
 docker tag  $(DOCKER_IMAGE):base-$(1) $(DOCKER_IMAGE):$(firstword $(subst -, ,$(1)));
 endef
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Initialize /run/log/journal ACLs
+After=systemd-journald.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemd-tmpfiles --create --prefix /run/log/journal
+
+[Install]
+WantedBy=default.target
