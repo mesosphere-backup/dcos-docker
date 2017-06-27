@@ -297,9 +297,27 @@ older kernels you may need to manually install this module with
 
 ## Docker out of space
 
+There are multiple symptoms and fixes for Docker being out of space.
+If an error which suggests that Docker is out of space presents, try the following command:
+
 ```
 docker volume prune
 ```
+
+It is possible that DC/OS services will fail to start and an error similar to the following will be reported in `journalctl`.
+
+```
+Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: Traceback (most recent call last):
+Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: File "/opt/mesosphere/packages/exhibitor--72d9d8f947e5411eda524d40dde1a58edeb158ed/usr/exhibitor/start_exhibitor.py", l
+Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: """)
+Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: File "/opt/mesosphere/packages/exhibitor--72d9d8f947e5411eda524d40dde1a58edeb158ed/usr/exhibitor/start_exhibitor.py", l
+Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: f.write(contents)
+Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: OSError: [Errno 28] No space left on device
+```
+
+On Docker for Mac, this can be fixed by deleting the disk image.
+To do this, go to Docker > Preferences > Advanced to find the "Disk image location".
+Delete this disk image and then quit and reopen Docker.
 
 ## Github Pull Request (PR) Labels
 
