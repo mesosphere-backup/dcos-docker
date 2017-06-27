@@ -109,16 +109,18 @@ For other make commands, see `make help`.
 
 ## DC/OS Login
 
-### Open Source
+DC/OS uses OAuth for authentication, configured through [Auth0](https://auth0.com/) by default.
 
-Uses OAuth.
+Use a Google, Github, Microsoft email account to authenticate.
 
-### Enterprise
+### Enterprise DC/OS Login
 
-```
-username: admin
-password: admin
-```
+Enterprise DC/OS uses built-in identity and access management (IAM), instead of OAuth.
+
+For dcos-docker, the superuser account is pre-configured:
+
+- Username: `admin`
+- Password: `admin`
 
 ## Network Routing
 
