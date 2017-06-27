@@ -316,6 +316,8 @@ Jun 26 22:32:44 dcos-docker-master1 start_exhibitor.py[6242]: OSError: [Errno 28
 ```
 
 On Docker for Mac, this can be fixed by deleting the disk image.
+This will have side effects on existing uses of Docker on your Mac.
+Do not do this if you rely on any features of your Docker installation which cannot be easily recovered.
 To do this, go to Docker > Preferences > Advanced to find the "Disk image location".
 Delete this disk image and then quit and reopen Docker.
 
