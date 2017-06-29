@@ -1,3 +1,7 @@
+# Since this Makefile was not designed with parallel execution in mind, opt
+# out of any parallelism users might enable have via the `make` invocation.
+.NOTPARALLEL:
+
 .DEFAULT_GOAL := all
 include common.mk
 
