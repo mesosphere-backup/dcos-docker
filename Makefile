@@ -336,8 +336,10 @@ clean: clean-containers clean-slice clean-certs ## Stops all containers and remo
 # Use SSH to execute tests because docker run/exec has a bug that breaks unbuffered pytest output.
 # https://github.com/moby/moby/issues/8755 - Fixed in Docker 17.06+
 test: ips ## Executes the integration tests
-	@echo "Removing known host: $(firstword $(MASTER_IPS))"
-	@sed -i"" -e '/$(firstword $(MASTER_IPS))/d' ~/.ssh/known_hosts
+	@[[ -f ~/.ssh/known_hosts ]] && grep -q $(firstword $(MASTER_IPS)) ~/.ssh/known_hosts && ( \
+		echo "Removing known host: $(firstword $(MASTER_IPS))" && \
+		sed -i"" -e '/$(firstword $(MASTER_IPS))/d' ~/.ssh/known_hosts \
+	) || true
 	@ssh -i $(GENCONF_DIR)/ssh_key -l root -p 22 -o StrictHostKeyChecking=no $(firstword $(MASTER_IPS)) " \
 		set -o errexit -o nounset -o pipefail && \
         source /opt/mesosphere/environment.export && \
