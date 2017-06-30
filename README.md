@@ -293,3 +293,7 @@ DC/OS installers are not immediately compatible with the BSD sed that ships with
     ```
 
     Warning: This method will make GNU sed the default sed, which may have unforeseen side-effects.
+
+## Troubleshooting
+
+See [`the troubleshooting document`](./troubleshooting.md) for details.
