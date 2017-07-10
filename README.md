@@ -214,7 +214,7 @@ is not supported by Docker 1.11.2 (the default version in the "node" containers)
 also specify a newer version of Docker to use in the "node" containers:
 
 ```
-make DOCKER_STORAGEDRIVER=overlay2 DOCKER=1.13.1
+make DOCKER_STORAGEDRIVER=overlay2 DOCKER_VERSION=1.13.1
 ```
 
 Alternatively, Docker itself can be configured to use `overlay`.
