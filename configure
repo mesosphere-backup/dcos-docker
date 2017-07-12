@@ -1,0 +1,507 @@
+#!/usr/bin/env bash
+
+set -o errexit -o nounset -o pipefail
+
+# Generates config.mk to avoid having to specify make configuration on every use.
+
+source vendor/semver_bash/semver.sh
+
+if [[ "${1:-}" == "--auto" ]]; then
+  echo >&2 "Auto Mode Enabled"
+  AUTO_DEFAULTS='true'
+elif ! [ -t 0 ]; then
+  echo >&2 "Auto Mode Enabled (no TTY detected)"
+  AUTO_DEFAULTS='true'
+fi
+
+# Pass the empty string to read if AUTO_DEFAULTS=true
+function read_safe() {
+  ARGS="$@"
+  if [[ "${AUTO_DEFAULTS:-}" == 'true' ]]; then
+    read ${ARGS} < <(echo) && echo
+  else
+    read ${ARGS}
+  fi
+}
+
+# If this session isn't interactive, then we don't want to allocate a TTY, which would fail.
+# If it is interactive, we do want to attach so that the user can send e.g. ^C through.
+INTERACTIVE='-i'
+if [ -t 0 ]; then
+  INTERACTIVE+=' -t'
+fi
+
+project_dir="$(cd "$(dirname "${BASH_SOURCE}")" && pwd -P)"
+cd "${project_dir}"
+
+# Default download URL
+DCOS_GENERATE_CONFIG_URL="https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh"
+
+# Make the DC/OS installer work with BSD/Mac sed.
+# Fixed in DC/OS 1.9.0 by https://github.com/dcos/dcos/pull/1571
+function patch_installer() {
+  DCOS_INSTALLER_PATH="${1}"
+  echo "Patching installer for BSD sed support..."
+  sed -i"" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" "${DCOS_INSTALLER_PATH}"
+}
+
+# Patch DC/OS installer if untar fails.
+# This could also indicate corruption (checksum mismatch).
+function auto_patch_installer() {
+  DCOS_INSTALLER_PATH="${1}"
+  echo "Inspecting installer..."
+  DCOS_VERSION_META="$(bash "${DCOS_INSTALLER_PATH}" --version 2>&1 || true)"
+  if echo "${DCOS_VERSION_META}" | grep -q 'tar: Unrecognized archive format'; then
+    echo "Detecting sed compatibility..."
+    if strings "$(which sed)" | grep -q BSD; then
+      echo "Incompatible sed variant: BSD"
+      patch_installer "${DCOS_INSTALLER_PATH}"
+    else
+      if strings "$(which sed)" | grep -q GNU; then
+        echo "Compatible sed variant: GNU"
+      else
+        echo "Unrecognized sed variant!"
+      fi
+      echo >&2 "bash "${DCOS_INSTALLER_PATH}" --version"
+      echo >&2 "${DCOS_VERSION_META}"
+      echo >&2 "Failed to inspect installer!"
+      exit 2
+    fi
+  fi
+}
+
+function download_installer() {
+  DCOS_INSTALLER_PATH="${1}"
+  echo "Downloading installer..."
+  curl --fail --location --show-error -o "${DCOS_INSTALLER_PATH}" "${DCOS_GENERATE_CONFIG_URL}"
+}
+
+function validate_installer_path() {
+  DCOS_INSTALLER_PATH="${1}"
+  echo "Validating installer path..."
+  if [[ -L "${DCOS_INSTALLER_PATH}" ]]; then
+    #symlink
+    installer_link_path="$(readlink -f "${DCOS_INSTALLER_PATH}")"
+    installer_dir="$(dirname "${installer_link_path}")"
+  else
+    installer_dir="$(dirname "${DCOS_INSTALLER_PATH}")"
+  fi
+  if [[ -L "${installer_dir}" ]]; then
+    installer_dir="$(readlink -f "${installer_dir}")"
+  fi
+  installer_dir="$(cd "${installer_dir}" && pwd -P)"
+
+  #echo "Installer Dir: ${installer_dir}"
+  #echo "dcos-docker Dir: $(pwd -P)"
+
+  if ! [[ "${installer_dir}/" =~ "$(pwd -P)/"* ]]; then
+    echo >&2 "Installer must be in or under the dcos-docker directory!"
+    exit 2
+  fi
+}
+
+function unpack_installer() {
+  DCOS_INSTALLER_PATH="${1}"
+  echo "Unpacking installer..."
+  DCOS_VERSION_META="$(bash "${DCOS_INSTALLER_PATH}" --version 2>&1 || true)"
+  if ! [[ "$(echo "${DCOS_VERSION_META}" | tail -1)" == "}" ]]; then
+    echo >&2 "bash "${DCOS_INSTALLER_PATH}" --version"
+    echo >&2 "${DCOS_VERSION_META}"
+    echo >&2 "Failed to unpack installer!"
+    exit 2
+  fi
+}
+
+function contains() {
+  ARRAY_VAR="${1}"
+  VALUE="${2}"
+  array=($(eval "echo \${${ARRAY_VAR}[@]}"))
+  for i in "${array[@]}"; do
+    if [[ "${i}" == "${VALUE}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+function prompt_select() {
+  PROMPT="${1}"
+  VALUE_VAR="${2}"
+  OPTIONS_VAR="${3}"
+
+  default="$(eval "echo \${${VALUE_VAR}}")"
+  options=($(eval "echo \${${OPTIONS_VAR}[@]}"))
+  indexes=($(seq 1 1 ${#options[@]} | paste -sd ' ' -))
+
+  echo "${PROMPT}: "
+  for i in "${!options[@]}"; do
+    echo -n "${indexes[$i]}) ${options[$i]}"
+    if [[ "${options[$i]}" == "${default}" ]]; then
+      echo -n " (default)"
+    fi
+    echo
+  done
+
+  while true; do
+    echo -n "#? "
+    read_safe reply
+
+    if [[ -z "${reply}" ]]; then
+      echo "Selected (default): ${default}"
+      eval "${VALUE_VAR}='${default}'"
+      break
+    elif contains "options" "${reply}"; then
+      echo "Selected: ${reply}"
+      eval "${VALUE_VAR}='${reply}'"
+      break
+    elif contains "indexes" "${reply}"; then
+      index=$((${reply}-1))
+      opt="${options[${index}]}"
+      echo "Selected: ${opt}"
+      eval "${VALUE_VAR}='${opt}'"
+      break
+    else
+      echo "Invalid option. Please try again."
+      continue
+    fi
+
+  done
+}
+
+function prompt_select_custom() {
+  PROMPT="${1}"
+  VALUE_VAR="${2}"
+  OPTIONS_VAR="${3}"
+
+  default="$(eval "echo \${${VALUE_VAR}}")"
+  options=($(eval "echo \${${OPTIONS_VAR}[@]}"))
+  indexes=($(seq 1 1 ${#options[@]} | paste -sd ' ' -))
+  custom_index="$((${#options[@]}+1))"
+
+  echo "${PROMPT}: "
+  for i in "${!options[@]}"; do
+    echo -n "${indexes[$i]}) ${options[$i]}"
+    if [[ "${options[$i]}" == "${default}" ]]; then
+      echo -n " (default)"
+    fi
+    echo
+  done
+  echo "${custom_index}) [custom]"
+
+  while true; do
+    echo -n "#? "
+    read_safe reply
+
+    if [[ -z "${reply}" ]]; then
+      echo "Selected (default): ${default}"
+      eval "${VALUE_VAR}='${default}'"
+      break
+    elif [[ "${reply}" == "${custom_index}" ]] || [[ "${reply}" == "custom" ]]; then
+      echo "Selected: custom"
+      while true; do
+        echo -n "Enter custom value: "
+        read_safe reply
+        if [[ -n "${reply}" ]]; then
+          break
+        fi
+        echo "Reply must not be empty. Please try again."
+      done
+      echo "Selected (custom): ${reply}"
+      eval "${VALUE_VAR}='${reply}'"
+      break
+    elif contains "options" "${reply}"; then
+      echo "Selected: ${reply}"
+      eval "${VALUE_VAR}='${reply}'"
+      break
+    elif contains "indexes" "${reply}"; then
+      index=$((${reply}-1))
+      opt="${options[${index}]}"
+      echo "Selected: ${opt}"
+      eval "${VALUE_VAR}='${opt}'"
+      break
+    else
+      echo "Invalid option. Please try again."
+      continue
+    fi
+
+  done
+}
+
+function prompt_custom() {
+  PROMPT="${1}"
+  VALUE_VAR="${2}"
+
+  default="$(eval "echo \${${VALUE_VAR}}")"
+
+  while true; do
+    echo -n "${PROMPT} [${default}]: "
+    read_safe reply
+
+    if [[ -z "${reply}" ]] || [[ "${reply}" == "${default}" ]]; then
+      echo "Entered (default): ${default}"
+      eval "${VALUE_VAR}='${default}'"
+      break
+    else
+      echo "Entered: ${reply}"
+      while true; do
+        echo -n "Confirm [Y/n]? "
+        read_safe confirm
+        if [[ -z "${confirm}" ]] || [[ "${confirm}" =~ ^(Y|y|Yes|yes| )$ ]]; then
+          break
+        elif [[ "${confirm}" =~ ^(N|n|No|no)$ ]]; then
+          continue 2
+        else
+          echo "Invalid option. Please try again."
+        fi
+      done
+      echo "Entered (custom): ${reply}"
+      eval "${VALUE_VAR}='${reply}'"
+      break
+    fi
+
+  done
+}
+
+function prompt_password() {
+  PROMPT="${1}"
+  VALUE_VAR="${2}"
+
+  default="$(eval "echo \${${VALUE_VAR}}")"
+
+  while true; do
+    echo -n "${PROMPT} [${default}]: "
+    read_safe -s reply
+    echo
+
+    if [[ -z "${reply}" ]] || [[ "${reply}" == "${default}" ]]; then
+      echo -n "Confirm password [${default}]: "
+      read_safe -s reply2
+      echo
+      if [[ -z "${reply2}" ]] || [[ "${reply2}" == "${default}" ]]; then
+        eval "${VALUE_VAR}='${default}'"
+        break
+      fi
+      echo "Passwords do not match. Please try again."
+      continue
+    else
+      echo -n "Confirm password: "
+      read_safe -s reply2
+      echo
+      if [[ "${reply2}" == "${reply}" ]]; then
+        eval "${VALUE_VAR}='${reply2}'"
+        break
+      fi
+      echo "Passwords do not match. Please try again."
+      continue
+    fi
+
+  done
+}
+
+function docker_storage_driver() {
+  # TODO: switch to using --format instead of grep (requires Docker 1.13+)
+  # Pipe to echo to remove surrounding quotes.
+  #docker info --format "{{json .Driver}}" | xargs echo
+  docker info | grep "^Storage Driver" | sed 's/.*: //'
+}
+
+function docker_server_version() {
+  docker info | grep "^Server Version" | sed 's/.*: //'
+}
+
+function docker_kernel_version() {
+  docker info | grep "^Kernel Version" | sed 's/.*: //'
+}
+
+# See https://stackoverflow.com/a/7860705 for details on escaping Makefile variables.
+function escape_for_makefile() {
+  echo "${1}" | sed -e 's/\$/\$\$/g' -e 's/#/\\#/g'
+}
+
+# Detect the docker host's init system.
+# Docker host may be remote (boot2docker).
+# /proc/$PID/comm is only available in Linux 2.6.33 and later.
+function host_init_sys() {
+  # trim invisible characters
+  docker run ${INTERACTIVE} -v /proc:/host/proc:ro alpine cat /host/proc/1/comm | tr -d '[:cntrl:]'
+}
+
+# Detect current Docker for Mac memory configuration (in MiB)
+function docker_for_mac_memory() {
+  (
+    cd ~/Library/Containers/com.docker.docker/Data/database
+    git show HEAD:com.docker.driver.amd64-linux/memoryMiB
+  )
+}
+
+#########################
+#### Execution Start ####
+#########################
+
+while true; do
+  echo
+  DCOS_INSTALLER_PATH='dcos_generate_config.sh'
+  prompt_custom "Enter DC/OS installer path" "DCOS_INSTALLER_PATH"
+  if [[ -f "${DCOS_INSTALLER_PATH}" ]]; then
+    break
+  fi
+  echo "Installer not found."
+  DCOS_INSTALLER_PATH='dcos_generate_config.sh'
+
+  echo
+  while true; do
+    echo -n "Download the latest stable DC/OS installer [Y/n]? "
+    read_safe confirm
+    if [[ -z "${confirm}" ]] || [[ "${confirm}" =~ ^(Y|y|Yes|yes| )$ ]]; then
+      download_installer "${DCOS_INSTALLER_PATH}"
+      #TODO: checksum match or retry
+      break 2
+    elif [[ "${confirm}" =~ ^(N|n|No|no)$ ]]; then
+      continue 2
+    else
+      echo "Invalid option. Please try again."
+    fi
+  done
+done
+
+validate_installer_path "${DCOS_INSTALLER_PATH}"
+auto_patch_installer "${DCOS_INSTALLER_PATH}"
+unpack_installer "${DCOS_INSTALLER_PATH}"
+
+echo "Detecting DC/OS version..."
+DCOS_VERSION_META="$(bash "${DCOS_INSTALLER_PATH}" --version)"
+DCOS_VERSION="$(echo "${DCOS_VERSION_META}" | grep 'version' | cut -d ':' -f 2 | cut -d '"' -f 2)"
+DCOS_VARIANT="$(echo "${DCOS_VERSION_META}" | grep 'variant' | cut -d ':' -f 2 | cut -d '"' -f 2)"
+echo "Version: ${DCOS_VERSION}"
+echo "Variant: ${DCOS_VARIANT:-oss}"
+
+echo
+echo "Detecting Docker server version..."
+DOCKER_SERVER_VERSION="$(docker_server_version)"
+echo "Server Version: ${DOCKER_SERVER_VERSION}"
+
+# Parse Docker server version
+# Strip suffix (it breaks semver comparisons)
+DOCKER_SERVER_VERSION="$(
+  semverParseInto "${DOCKER_SERVER_VERSION}" DSV_MAJOR DSV_MINOR DSV_PATCH DSV_SPECIAL
+  echo "${DSV_MAJOR}.${DSV_MINOR}.${DSV_PATCH}"
+)"
+
+echo
+echo "Detecting Docker kernel version..."
+DOCKER_KERNEL_VERSION="$(docker_kernel_version)"
+echo "Kernel Version: ${DOCKER_KERNEL_VERSION}"
+
+# Docker-for-Mac-only setup
+if [[ "$(uname)" == 'Darwin' ]] && [[ "${DOCKER_KERNEL_VERSION}" == *"-moby" ]]; then
+  # Docker 1.13.1 required
+  if semverLT "${DOCKER_SERVER_VERSION}" "1.13.1"; then
+    echo >&2 "Unsupported Docker server version! Requires 1.13.1 or greater."
+    exit 2
+  fi
+
+  echo
+  echo "Detecting Docker for Mac memory..."
+  DOCKER_SERVER_MEMORY="$(docker_for_mac_memory)"
+  echo "Docker Memory: ${DOCKER_SERVER_MEMORY}"
+
+  if [[ "${DOCKER_SERVER_MEMORY}" -lt '6144' ]]; then
+    echo >&2 "Insufficient Docker for Mac memory! Requires 6 GiB or more."
+    exit 2
+  fi
+fi
+
+echo
+echo "Detecting Docker storage driver..."
+DOCKER_STORAGEDRIVER="$(docker_storage_driver)"
+echo "Storage Driver: ${DOCKER_STORAGEDRIVER}"
+
+echo
+DOCKER_STORAGEDRIVER_OPTIONS=(overlay overlay2 aufs devicemapper)
+if ! contains "DOCKER_STORAGEDRIVER_OPTIONS" "${DOCKER_STORAGEDRIVER}"; then
+  DOCKER_STORAGEDRIVER='overlay'
+fi
+prompt_select_custom "Select inner Docker storage driver" "DOCKER_STORAGEDRIVER" "DOCKER_STORAGEDRIVER_OPTIONS"
+
+echo
+DOCKER_VERSION='1.11.2'
+if [[ "${DOCKER_STORAGEDRIVER}" == 'overlay2' ]]; then
+  DOCKER_VERSION='1.13.1'
+fi
+DOCKER_VERSION_OPTIONS=(1.11.2 1.13.1)
+prompt_select "Select inner Docker version" "DOCKER_VERSION" "DOCKER_VERSION_OPTIONS"
+
+echo
+echo "Detecting Docker host init system..."
+DOCKER_HOST_INIT_SYS="$(host_init_sys)"
+echo "Init System: '${DOCKER_HOST_INIT_SYS}'"
+
+echo
+if [[ "${DOCKER_HOST_INIT_SYS}" == 'systemd' ]]; then
+  MESOS_SYSTEMD_ENABLE_SUPPORT='true'
+else
+  MESOS_SYSTEMD_ENABLE_SUPPORT='false'
+fi
+MESOS_SYSTEMD_ENABLE_SUPPORT_OPTIONS=(true false)
+prompt_select "Enable Mesos systemd support (requires systemd on host)" "MESOS_SYSTEMD_ENABLE_SUPPORT" "MESOS_SYSTEMD_ENABLE_SUPPORT_OPTIONS"
+
+echo
+NUM_MASTER_NODES='1'
+NUM_MASTER_NODES_OPTIONS=(1 3 5 7 9)
+prompt_select_custom "Select number of master nodes" "NUM_MASTER_NODES" "NUM_MASTER_NODES_OPTIONS"
+
+echo
+NUM_AGENT_NODES='1'
+prompt_custom "Enter number of agent nodes" "NUM_AGENT_NODES"
+
+echo
+NUM_PUBLIC_AGENT_NODES='1'
+prompt_custom "Enter number of public agent nodes" "NUM_PUBLIC_AGENT_NODES"
+
+# Enterprise-only setup
+if [[ "${DCOS_VARIANT}" == "ee" ]]; then
+  echo
+  SUPERUSER_USERNAME='admin'
+  prompt_custom "Enter superuser username" "SUPERUSER_USERNAME"
+
+  echo
+  SUPERUSER_PASSWORD='admin'
+  prompt_password "Enter superuser password" "SUPERUSER_PASSWORD"
+
+  # short circuit hashing for default password
+  if [[ "${SUPERUSER_PASSWORD}" == "admin" ]]; then
+    SUPERUSER_PASSWORD_HASH='$6$rounds=656000$5hVo9bKXfWRg1OCd$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0'
+  else
+    HASH_RESPONSE="$(bash dcos_generate_config.sh --hash-password "${SUPERUSER_PASSWORD}")"
+    SUPERUSER_PASSWORD_HASH="$(echo "${HASH_RESPONSE}" | tail -1)"
+    if [[ "${SUPERUSER_PASSWORD_HASH}" != '$6$'* ]]; then
+      echo "Failed to hash password!"
+      echo "${HASH_RESPONSE}"
+      exit 2
+    fi
+  fi
+fi
+
+echo
+CONFIG_PATH='make-config.mk'
+echo "Generating dcos-docker config..."
+cat > "${CONFIG_PATH}" << EOM
+DCOS_GENERATE_CONFIG_PATH := \$(CURDIR)/${DCOS_INSTALLER_PATH}
+DOCKER_VERSION := ${DOCKER_VERSION}
+DOCKER_STORAGEDRIVER := ${DOCKER_STORAGEDRIVER}
+MESOS_SYSTEMD_ENABLE_SUPPORT := ${MESOS_SYSTEMD_ENABLE_SUPPORT}
+MASTERS := ${NUM_MASTER_NODES}
+AGENTS := ${NUM_AGENT_NODES}
+PUBLIC_AGENTS := ${NUM_PUBLIC_AGENT_NODES}
+EOM
+if [[ "${DCOS_VARIANT}" == "ee" ]]; then
+  cat >> "${CONFIG_PATH}" << EOM
+SUPERUSER_USERNAME := ${SUPERUSER_USERNAME}
+SUPERUSER_PASSWORD_HASH := $(escape_for_makefile "${SUPERUSER_PASSWORD_HASH}")
+EOM
+fi
+cat "${CONFIG_PATH}"
+
+echo
+echo "Configuration Complete!"
+echo 'Run `make` to deploy DC/OS.'

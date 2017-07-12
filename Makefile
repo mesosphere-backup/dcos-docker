@@ -3,27 +3,12 @@ include common.mk
 
 .PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
 
-# Set the number of DC/OS masters.
-MASTERS := 1
-
-# Set the number of DC/OS agents.
-AGENTS := 1
-
-# Set the number of DC/OS public agents.
-PUBLIC_AGENTS := 1
-
 ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
-
-# Distro to use as the OS for the "node" containers
-DISTRO := centos-7
 
 # Installer variables
 GENCONF_DIR_SRC := $(CURDIR)/genconf.src
 GENCONF_DIR := $(CURDIR)/genconf
 CONFIG_FILE := $(GENCONF_DIR)/config.yaml
-DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh
-DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
-INSTALLER_PORT := 9000
 INSTALLER_CMD := \
 	PORT=${INSTALLER_PORT} \
 	DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR} \
@@ -59,22 +44,6 @@ SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
-
-# Detect the docker host's init system.
-# Docker host may be remote (boot2docker).
-# /proc/$PID/comm is only available in Linux 2.6.33 and later.
-DOCKER_HOST_INIT_SYS := $(docker run $(INTERACTIVE) -v /proc:/host/proc:ro alpine cat /host/proc/1/comm)
-
-# Disable Mesos systemd support when the docker host is not systemd.
-# This is not officially supported or tested by DC/OS.
-# Disabling MESOS_SYSTEMD_ENABLE_SUPPORT means that executors will be namespaced under the Mesos agent.
-# So executors (and tasks) will be killed when the Mesos agent is restarted.
-# This makes zero downtime in-place DC/OS upgrades impossible.
-ifeq ($(DOCKER_HOST_INIT_SYS), systemd)
-	MESOS_SYSTEMD_ENABLE_SUPPORT := true
-else
-	MESOS_SYSTEMD_ENABLE_SUPPORT := false
-endif
 
 # Variables for various docker arguments.
 MASTER_MOUNTS :=

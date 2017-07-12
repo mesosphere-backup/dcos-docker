@@ -65,14 +65,6 @@ Host Docker storage drivers of `overlay` and `aufs` are supported automatically.
     make installer
     ```
 
-1. (**Mac-only**) Modify the DC/OS installer to support BSD sed:
-
-    ```console
-    sed -i"" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
-    ```
-
-    See [Mac Compatible installers](#mac-compatible-installers) for more details.
-
 1. (**Vagrant-only**) Bring up the Virtual Machine with a chosen disk size.
 
     Vagrant disks are sparse and as such they will only use the space that is actually used.
@@ -90,6 +82,32 @@ Host Docker storage drivers of `overlay` and `aufs` are supported automatically.
     ```console
     vagrant ssh
     ```
+
+1. Configure DC/OS Docker:
+
+    Generate `make-config.mk` automatically, interactively, or manually.
+
+    **Automatic Mode:**
+
+    ```console
+    ./configure --auto
+    ```
+
+    **Interactive Mode:**
+
+    ```console
+    ./configure
+    ```
+
+    **Manual Mode (example):**
+
+    ```console
+    cat > make-config.mk << EOM
+    MASTERS := 3
+    EOM
+    ```
+
+    See [make-defaults.mk](make-defaults.mk) for a full list of manually configurable options.
 
 ## Deploy
 
