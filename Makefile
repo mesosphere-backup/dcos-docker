@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := all
-include common.mk
+include make-common.mk
 
 .PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
 
