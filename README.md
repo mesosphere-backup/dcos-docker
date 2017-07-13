@@ -357,7 +357,7 @@ DC/OS installers are not immediately compatible with the BSD sed that ships with
 1. Modify the installer with the following script:
 
     ```
-    sed -i"" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
+    sed -E -i"" -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" dcos_generate_config.sh
     ```
 
 2. Install GNU sed with Homebrew:

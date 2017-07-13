@@ -42,7 +42,7 @@ DCOS_GENERATE_CONFIG_URL="https://downloads.dcos.io/dcos/stable/dcos_generate_co
 function patch_installer() {
   DCOS_INSTALLER_PATH="${1}"
   echo "Patching installer for BSD sed support..."
-  sed -i"" -E -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" "${DCOS_INSTALLER_PATH}"
+  sed -E -i"" -e 'H;1h;$!d;x' -e "s/sed '0,/sed '1,/" "${DCOS_INSTALLER_PATH}"
 }
 
 # Patch DC/OS installer if untar fails.
