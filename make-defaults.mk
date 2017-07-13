@@ -54,7 +54,7 @@ DCOS_PYTEST_CMD := py.test -vv
 REGISTRY_HOST := registry.local
 
 # Custom Docker volume arguments (passed to docker run)
-# Syntax: -v [<host-path>:]<container-path>
+# Syntax: -v [<host-path>:]<container-path>[:<mode>]
 CUSTOM_MASTER_VOLUMES :=
 CUSTOM_AGENT_VOLUMES :=
 CUSTOM_PUBLIC_AGENT_VOLUMES :=
