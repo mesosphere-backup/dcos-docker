@@ -53,6 +53,13 @@ DCOS_PYTEST_CMD := py.test -vv
 # Variable for the registry host
 REGISTRY_HOST := registry.local
 
+# Custom Docker volume arguments (passed to docker run)
+# Syntax: -v [<host-path>:]<container-path>
+CUSTOM_MASTER_VOLUMES :=
+CUSTOM_AGENT_VOLUMES :=
+CUSTOM_PUBLIC_AGENT_VOLUMES :=
+
+
 #########################################
 #### Enterprise-only Config Defaults ####
 #########################################
