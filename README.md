@@ -27,7 +27,7 @@ Host Docker storage drivers of `overlay` and `aufs` are supported automatically.
 
 ### Linux
 
-- systemd (recommended) or [no systemd](#non-systemd-host) (experiemental)
+- systemd (recommended) or [no systemd](#non-systemd-host) (experimental)
 - A recent kernel that supports Overlay FS
 - Docker 1.13.1+
 - make
