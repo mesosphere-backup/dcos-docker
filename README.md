@@ -10,120 +10,127 @@ DC/OS Docker is designed to optimize development cycle time. For a more producti
 
 ## Issue Tracking
 
-- Issue tracking is in [DCOS JIRA](https://jira.mesosphere.com/issues/?jql=project%20%3D%20DCOS_OSS%20AND%20component%20%3D%20dcos-docker%20AND%20status%20%3D%20Open%20).
+- Issue tracking is in [DCOS JIRA](https://jira.mesosphere.com/issues/?jql=project%20%3D%20DCOS_OSS%20AND%20component%20%3D%20dcos-docker%20AND%20status%20%3D%20Open%20). Use the `dcos-docker` component in the `DCOS_OSS` JIRA project.
 - Remember to make a DC/OS JIRA account and login so you can get update notifications!
 
-## Caveats
+## Memory Warning
 
-- Because of Docker-in-Docker, DC/OS services (like Jenkins) that themselves use Docker-in-Docker may not work correctly.
-- Because containerization does not affect resource detection tools, each DC/OS node will think it can allocate all of the host's resources, leading to over-subscription without protection. You are still bound by the disk and memory constraints of the host, even if DC/OS thinks you have N (number of agent nodes) times more. Running Docker in a VM can protect your host from this and allows you to designate how much disk/memory/cpu DC/OS gets in total. Running Docker directly on a Linux host gives DC/OS more resources to play with but may also freeze your machine if you run too many DC/OS services/jobs.
+Because containerization does not affect resource detection tools, each DC/OS node will think it can allocate all of the host's resources to use tasks, leading to unprotected over-subscription.
+
+Mitigation Options:
+- Run dcos-docker in a VM and configure the VM resources in the `Vagrantfile` to be less than the host's resources.
+- Run dcos-docker on a systemd machine and configure the `mesos_executors.slice` to [configure max resources](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html) for all DC/OS user tasks (slice does not include DC/OS system tasks).
+
+## Recommended Environments
+
+- Virtual Machine
+  - [Vagrant](https://www.vagrantup.com/) 1.9.3+ & [VirtualBox](https://www.virtualbox.org/wiki/Downloads) 5.1.18+ (CentOS 7.3 VM)
+- Linux
+  - Ubuntu 16.04
+  - CentOS 7.3
+  - [Non-systemd OS](#non-systemd-host) (experimental)
+- macOS
+  - [Docker for Mac](https://docs.docker.com/docker-for-mac/) (experimental)
 
 ## Requirements
 
-DC/OS Docker can be run on Linux, macOS, or on Linux in a VM using Vagrant with VirtualBox.
-The support for macOS as a host is experimental.
-
-Host Docker storage drivers of `overlay` and `aufs` are supported automatically. For anything else, see [Storage Driver](#storage-driver) for config instructions.
-
-### Linux
-
-- systemd (recommended) or [no systemd](#non-systemd-host) (experimental)
-- A recent kernel that supports Overlay FS
-- Docker 1.13.1+
+- git
 - make
-- git
+- bash
 
-### Mac
+## Quick Start
 
-> **NOTE:**  Docker for Mac support is experimental. Use Vagrant for a better tested configuration.
+The following instructions are for Linux and Mac (w/ Docker for Mac). To use Vagrant/VirtualBox, see [Vagrant Quick Start](#vagrant-quick-start).
 
-- [Docker for Mac](https://docs.docker.com/docker-for-mac/) 1.13.1+
-  - 6GB Memory (recommended). See [Docker for Mac advanced config](https://docs.docker.com/docker-for-mac/#advanced) for more details.
-- make
-- git
+```
+# download
+git clone https://github.com/dcos/dcos-docker
+cd dcos-docker
 
-### Vagrant
+# auto-configure based on environment & download latest stable DC/OS release
+./configure --auto
 
-- [VirtualBox](https://www.virtualbox.org/wiki/Downloads) 5.1.18+
-- [Vagrant](https://www.vagrantup.com/) 1.9.3+
-- git
+# build and deploy
+make
 
-## Setup
+# wait for async setup to complete
+make postflight
+```
 
-1. Clone this repo:
-
-    ```console
-    git clone https://github.com/dcos/dcos-docker
-    cd dcos-docker
-    ```
-
-1. Download [DC/OS](https://dcos.io/releases/) or [Enterprise DC/OS](https://mesosphere.com/product/) into the root of the dcos-docker repo directory.
-
-    For example, download the latest stable release:
-
-    ```console
-    make installer
-    ```
-
-1. (**Vagrant-only**) Bring up the Virtual Machine with a chosen disk size.
-
-    Vagrant disks are sparse and as such they will only use the space that is actually used.
-
-    DC/OS should deploy with a size of 100GB, but for larger deployments you may need to increase the size of the VM.
-
-    The first argument is the desired disk size in MB (ex: 102400 is 100GB).
-
-    ```console
-    vagrant/resize-disk.sh 102400
-    ```
-
-1. (**Vagrant-only**) SSH into the virtual machine:
-
-    ```console
-    vagrant ssh
-    ```
-
-1. Configure DC/OS Docker:
-
-    Generate `make-config.mk` automatically, interactively, or manually.
-
-    **Automatic Mode:**
-
-    ```console
-    ./configure --auto
-    ```
-
-    **Interactive Mode:**
-
-    ```console
-    ./configure
-    ```
-
-    **Manual Mode (example):**
-
-    ```console
-    cat > make-config.mk << EOM
-    MASTERS := 3
-    EOM
-    ```
-
-    See [make-defaults.mk](make-defaults.mk) for a full list of manually configurable options.
-
-## Deploy
-
-1. Deploy DC/OS in Docker:
-
-    ```console
-    make
-    ```
-
-1. (Optional) Wait for DC/OS to come up:
-
-    ```console
-    make postflight
-    ```
+For macOS-specific routing setup, see  [Network Routing: Docker for Mac](#network-routing-docker-for-mac).
 
 For other make commands, see `make help`.
+
+## Vagrant Quick Start
+
+```
+# download
+git clone https://github.com/dcos/dcos-docker
+cd dcos-docker
+
+# start a CentOS VM
+vagrant up
+
+# SSH into the VM
+vagrant ssh
+
+# auto-configure based on environment & download latest stable DC/OS release
+./configure --auto
+
+# build and deploy
+make
+
+# wait for async setup to complete
+make postflight
+```
+
+For OS-specific routing setup, see [Network Routing: Vagrant](#network-routing-vagrant).
+
+## Vagrant Disk Size
+
+By default, the `Vagrantfile` provided uses a sparse VMDK box with a 100GiB disk.
+
+To increase this, specify the desired size in MiB before running `make`. For example:
+
+```
+vagrant/resize-disk.sh 204800
+```
+
+## Configuration
+
+The `make-config.mk` file is expected to contain persistent configurations. Use one of the following methods to generate it:
+
+**Automatic:**
+
+```console
+./configure --auto
+```
+
+**Interactive:**
+
+```console
+./configure
+```
+
+**Manual (example):**
+
+```console
+cat > make-config.mk << EOM
+MASTERS := 3
+EOM
+```
+
+See [make-defaults.mk](make-defaults.mk) for a full list of manually configurable options.
+
+## DC/OS Versions
+
+Official releases of DC/OS can be found at <http://dcos.io/releases/>.
+
+By default, DC/OS Docker (`./configure`) downloads the latest **stable** version of DC/OS.
+
+To use a different version, specify the path to the installer interactively when running `./configure` or manually in `make-config.mk` by setting `DCOS_GENERATE_CONFIG_PATH`.
+
+[Enterprise DC/OS](https://mesosphere.com/product/) is also supported. Ask your sales representative for release artifacts.
 
 ## DC/OS Login
 
@@ -146,7 +153,7 @@ By default with Vagrant or Docker for Mac, containers are not reachable from the
 This will prohibit SSHing into a container (not `docker exec`) and viewing the DC/OS GUI in a browser.
 However, there are a few workarounds described below.
 
-### Vagrant
+### Network Routing: Vagrant
 
 To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`). This routing is not required if you deployed DC/OS to Docker on a native Linux host.
 
@@ -176,7 +183,7 @@ On macOS:
 $ sudo route delete 172.17.0.0/16
 ```
 
-### Docker for Mac
+### Network Routing: Docker for Mac
 
 HyperKit (the hypervisor used by Docker for Mac) does not currently support IP routing on Mac.
 
@@ -266,7 +273,7 @@ want to test something else you can run:
 $ make DISTRO=fedora
 ```
 
-### Non-systemd host
+### Non-systemd Host
 
 By default, systemd is used on the host to create a [systemd
 slice](https://www.freedesktop.org/software/systemd/man/systemd.slice.html).
