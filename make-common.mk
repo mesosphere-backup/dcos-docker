@@ -1,38 +1,26 @@
 SHELL := /bin/bash
 
-# Set the superuser username
-SUPERUSER_USERNAME := admin
-# The following is a hash of the password `admin`.
-# A hash of a password can be obtained by running the following command:
-#    bash dcos_generate_config.sh --hash-password admin | tail -1
-# The password hash here is escaped.
-# See https://stackoverflow.com/a/7860705 for details on escaping Makefile variables.
-SUPERUSER_PASSWORD_HASH := $$6$$rounds=656000$$5hVo9bKXfWRg1OCd$$3X2U4hI6RYvKFqm6hXtEeqnH2xE3XUJYiiQ/ykKlDXUie/0B6cuCZEfLe.dN/7jF5mx/vSkoLE5d1Zno20Z7Q0
+#########################
+#### Config Includes ####
+#########################
 
-# Variables for the resulting container & image names.
-MASTER_CTR:= dcos-docker-master
-AGENT_CTR := dcos-docker-agent
-PUBLIC_AGENT_CTR := dcos-docker-pubagent
-INSTALLER_CTR := dcos-docker-installer
-DOCKER_IMAGE := mesosphere/dcos-docker
+include make-defaults.mk
 
-# Version of Docker to install on the DC/OS nodes
-DOCKER_VERSION := 1.11.2
+ifeq ($(shell test -e make-config.mk && echo yes),)
+$(warning Missing config file (make-config.mk). Run `./configure` to generate it)
+else
+include make-config.mk
+endif
+
+###########################
+#### Config Validation ####
+###########################
 
 ifneq ($(DOCKER_VERSION),1.11.2)
 ifneq ($(DOCKER_VERSION),1.13.1)
 $(error Only Docker versions 1.11.2 and 1.13.1 are supported)
 endif
 endif
-
-# Variable to set the correct Docker storage driver to the currently running
-# storage driver. This makes docker in docker work more efficiently.
-DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(shell docker info 2>/dev/null | grep "Storage Driver" | sed 's/.*: //'))
-
-# TODO: switch to using --format instead of grep (requires Docker 1.13+)
-# Pipe to echo to remove surrounding quotes.
-#HOST_DOCKER_STORAGEDRIVER := $(shell docker info --format "{{json .Driver}}" | xargs echo)
-#DOCKER_STORAGEDRIVER := $(if $(DOCKER_STORAGEDRIVER),$(DOCKER_STORAGEDRIVER),$(HOST_DOCKER_STORAGEDRIVER))
 
 ifeq ($(DOCKER_VERSION),1.11.2)
 ifneq ($(DOCKER_STORAGEDRIVER),$(filter $(DOCKER_STORAGEDRIVER),overlay aufs))
@@ -46,17 +34,6 @@ $(error Only `overlay`, `overlay2`, and `aufs` storage drivers are supported for
 endif
 endif
 
-# Settings for test command
-DCOS_PYTEST_DIR := /opt/mesosphere/active/dcos-integration-test/
-DCOS_PYTEST_CMD := py.test -vv
-
-# Variable for the registry host
-REGISTRY_HOST := registry.local
-
-IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
-
-STATE_CMD := docker inspect --format "{{.State.Running}}"
-
 UNAME := $(shell uname)
 OPEN_CMD := echo Unsupported OS (maybe you are on windows?) for opening url
 ifeq ($(UNAME), Linux)
@@ -64,6 +41,10 @@ ifeq ($(UNAME), Linux)
 else ifeq ($(UNAME), Darwin)
 	OPEN_CMD := open
 endif
+
+#########################
+#### Common Commands ####
+#########################
 
 .PHONY: help
 help: ## Generate the Makefile help
@@ -78,7 +59,13 @@ ips: ## Gets the ips for the currently running containers.
 	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call get_agent_ips,$(NUM)))
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call get_public_agent_ips,$(NUM)))
 
-# Helper definitions.
+###########################
+#### Helper Function ####
+###########################
+
+IP_CMD := docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}"
+STATE_CMD := docker inspect --format "{{.State.Running}}"
+
 null :=
 space := ${null} ${null}
 ${space} := ${space} # ${ } is a space.

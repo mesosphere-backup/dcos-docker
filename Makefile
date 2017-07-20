@@ -3,31 +3,16 @@
 .NOTPARALLEL:
 
 .DEFAULT_GOAL := all
-include common.mk
+include make-common.mk
 
 .PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
 
-# Set the number of DC/OS masters.
-MASTERS := 1
-
-# Set the number of DC/OS agents.
-AGENTS := 1
-
-# Set the number of DC/OS public agents.
-PUBLIC_AGENTS := 1
-
 ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
-
-# Distro to use as the OS for the "node" containers
-DISTRO := centos-7
 
 # Installer variables
 GENCONF_DIR_SRC := $(CURDIR)/genconf.src
 GENCONF_DIR := $(CURDIR)/genconf
 CONFIG_FILE := $(GENCONF_DIR)/config.yaml
-DCOS_GENERATE_CONFIG_URL := https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh
-DCOS_GENERATE_CONFIG_PATH := $(CURDIR)/dcos_generate_config.sh
-INSTALLER_PORT := 9000
 INSTALLER_CMD := \
 	PORT=${INSTALLER_PORT} \
 	DCOS_INSTALLER_CONTAINER_NAME=${INSTALLER_CTR} \
@@ -64,47 +49,26 @@ SSH_KEY := $(SSH_DIR)/id_$(SSH_ALGO)
 # Variable for the path to the mesos executors systemd slice.
 MESOS_SLICE := /run/systemd/system/mesos_executors.slice
 
-# Detect the docker host's init system.
-# Docker host may be remote (boot2docker).
-# /proc/$PID/comm is only available in Linux 2.6.33 and later.
-DOCKER_HOST_INIT_SYS := $(docker run $(INTERACTIVE) -v /proc:/host/proc:ro alpine cat /host/proc/1/comm)
-
-# Disable Mesos systemd support when the docker host is not systemd.
-# This is not officially supported or tested by DC/OS.
-# Disabling MESOS_SYSTEMD_ENABLE_SUPPORT means that executors will be namespaced under the Mesos agent.
-# So executors (and tasks) will be killed when the Mesos agent is restarted.
-# This makes zero downtime in-place DC/OS upgrades impossible.
-ifeq ($(DOCKER_HOST_INIT_SYS), systemd)
-	MESOS_SYSTEMD_ENABLE_SUPPORT := true
-else
-	MESOS_SYSTEMD_ENABLE_SUPPORT := false
-endif
-
 # Variables for various docker arguments.
-MASTER_MOUNTS :=
-SYSTEMD_MOUNTS := \
-	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
-VOLUME_MOUNTS := \
+NODE_VOLUMES := \
 	-v /var/lib/docker \
-	-v /opt
-AGENT_VOLUME_MOUNTS := \
-	-v /var/lib/mesos/slave
-BOOTSTRAP_VOLUME_MOUNT := \
-	-v $(BOOTSTRAP_GENCONF_PATH):$(BOOTSTRAP_TMP_PATH):ro
-TMPFS_MOUNTS := \
+	-v /opt \
 	--tmpfs /run:rw,exec,nosuid,size=2097152k \
-	--tmpfs /tmp:rw,exec,nosuid,size=2097152k
-CERT_MOUNTS := \
+	--tmpfs /tmp:rw,exec,nosuid,size=2097152k \
 	-v $(CERTS_DIR):/etc/docker/certs.d
+AGENT_VOLUMES := \
+	-v /var/lib/mesos/slave \
+	-v /sys/fs/cgroup:/sys/fs/cgroup:ro
+BOOTSTRAP_VOLUMES := \
+	-v $(BOOTSTRAP_GENCONF_PATH):$(BOOTSTRAP_TMP_PATH):ro
 
-# The home directory can be mounted as a development convenience.
+# The home directory is mounted as a development convenience.
 # However, on some platforms, where $(HOME) is not set, we default to not mounting anything.
 # Otherwise a mount of `::ro` would be attempted.
 ifdef HOME
-    HOME_MOUNTS := \
-	-v $(HOME):$(HOME):ro
+    HOME_VOLUMES := -v $(HOME):$(HOME):ro
 else
-    HOME_MOUNTS :=
+    HOME_VOLUMES :=
 endif
 
 # if this session isn't interactive, then we don't want to allocate a
@@ -177,7 +141,7 @@ postflight: ## Polls DC/OS until it is healthy (5m timeout)
 
 master: ## Starts the containers for DC/OS masters.
 	@echo "+ Starting master nodes"
-	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(MASTER_MOUNTS) $(TMPFS_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS)))
+	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(NODE_VOLUMES) $(HOME_VOLUMES) $(CUSTOM_MASTER_VOLUMES)))
 
 $(MESOS_SLICE):
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
@@ -188,11 +152,11 @@ $(MESOS_SLICE):
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	@echo "+ Starting agent nodes"
-	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS) $(AGENT_VOLUME_MOUNTS)))
+	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(HOME_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_AGENT_VOLUMES)))
 
 public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
 	@echo "+ Starting public agent nodes"
-	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(TMPFS_MOUNTS) $(SYSTEMD_MOUNTS) $(CERT_MOUNTS) $(HOME_MOUNTS) $(VOLUME_MOUNTS) $(AGENT_VOLUME_MOUNTS)))
+	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(HOME_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_PUBLIC_AGENT_VOLUMES)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl --fail --location --show-error -o $@ $(DCOS_GENERATE_CONFIG_URL)
@@ -303,7 +267,7 @@ deploy: preflight ## Run the DC/OS installer with --deploy.
 	@echo "+ Running deploy"
 	$(INSTALLER_CMD) --deploy
 
-install: VOLUME_MOUNTS += $(BOOTSTRAP_VOLUME_MOUNT)
+install: NODE_VOLUMES += $(BOOTSTRAP_VOLUMES)
 install: genconf ## Install DC/OS using "advanced" method
 	@echo "+ Running dcos_install.sh on masters"
 	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call run_dcos_install_in_container,$(MASTER_CTR),$(NUM),master))
