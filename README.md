@@ -17,9 +17,13 @@ DC/OS Docker is designed to optimize development cycle time. For a more producti
 
 Because containerization does not affect resource detection tools, each DC/OS node will think it can allocate all of the host's resources to use tasks, leading to unprotected over-subscription.
 
-Mitigation Options:
+**Mitigation Options:**
 - Run dcos-docker in a VM and configure the VM resources in the `Vagrantfile` to be less than the host's resources.
 - Run dcos-docker on a systemd machine and configure the `mesos_executors.slice` to [configure max resources](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html) for all DC/OS user tasks (slice does not include DC/OS system tasks).
+
+**Memory Requirements:**
+- 4GiB (Required for smoke tests to pass)
+- 6GiB (Recommended)
 
 ## Recommended Environments
 
