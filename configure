@@ -116,9 +116,9 @@ function unpack_installer() {
 }
 
 function contains() {
-  ARRAY_VAR="${1}"
-  VALUE="${2}"
-  array=($(eval "echo \${${ARRAY_VAR}[@]}"))
+  local ARRAY_VAR="${1}"
+  local VALUE="${2}"
+  local array=($(eval "echo \${${ARRAY_VAR}[@]}"))
   for i in "${array[@]}"; do
     if [[ "${i}" == "${VALUE}" ]]; then
       return 0
@@ -128,13 +128,13 @@ function contains() {
 }
 
 function prompt_select() {
-  PROMPT="${1}"
-  VALUE_VAR="${2}"
-  OPTIONS_VAR="${3}"
+  local PROMPT="${1}"
+  local VALUE_VAR="${2}"
+  local OPTIONS_VAR="${3}"
 
-  default="$(eval "echo \${${VALUE_VAR}}")"
-  options=($(eval "echo \${${OPTIONS_VAR}[@]}"))
-  indexes=($(seq 1 1 ${#options[@]} | paste -sd ' ' -))
+  local default="$(eval "echo \${${VALUE_VAR}}")"
+  local options=($(eval "echo \${${OPTIONS_VAR}[@]}"))
+  local indexes=($(seq 1 1 ${#options[@]} | paste -sd ' ' -))
 
   echo "${PROMPT}: "
   for i in "${!options[@]}"; do
@@ -172,14 +172,14 @@ function prompt_select() {
 }
 
 function prompt_select_custom() {
-  PROMPT="${1}"
-  VALUE_VAR="${2}"
-  OPTIONS_VAR="${3}"
+  local PROMPT="${1}"
+  local VALUE_VAR="${2}"
+  local OPTIONS_VAR="${3}"
 
-  default="$(eval "echo \${${VALUE_VAR}}")"
-  options=($(eval "echo \${${OPTIONS_VAR}[@]}"))
-  indexes=($(seq 1 1 ${#options[@]} | paste -sd ' ' -))
-  custom_index="$((${#options[@]}+1))"
+  local default="$(eval "echo \${${VALUE_VAR}}")"
+  local options=($(eval "echo \${${OPTIONS_VAR}[@]}"))
+  local indexes=($(seq 1 1 ${#options[@]} | paste -sd ' ' -))
+  local custom_index="$((${#options[@]}+1))"
 
   echo "${PROMPT}: "
   for i in "${!options[@]}"; do
@@ -231,10 +231,10 @@ function prompt_select_custom() {
 }
 
 function prompt_custom() {
-  PROMPT="${1}"
-  VALUE_VAR="${2}"
+  local PROMPT="${1}"
+  local VALUE_VAR="${2}"
 
-  default="$(eval "echo \${${VALUE_VAR}}")"
+  local default="$(eval "echo \${${VALUE_VAR}}")"
 
   while true; do
     echo -n "${PROMPT} [${default}]: "
@@ -245,19 +245,12 @@ function prompt_custom() {
       eval "${VALUE_VAR}='${default}'"
       break
     else
-      echo "Entered: ${reply}"
-      while true; do
-        echo -n "Confirm [Y/n]? "
-        read_safe confirm
-        if [[ -z "${confirm}" ]] || [[ "${confirm}" =~ ^(Y|y|Yes|yes| )$ ]]; then
-          break
-        elif [[ "${confirm}" =~ ^(N|n|No|no)$ ]]; then
-          continue 2
-        else
-          echo "Invalid option. Please try again."
-        fi
-      done
       echo "Entered (custom): ${reply}"
+      CONFIRM='yes'
+      prompt_yes_no 'Confirm' 'CONFIRM'
+      if [[ "${CONFIRM}" != 'yes' ]]; then
+        continue
+      fi
       eval "${VALUE_VAR}='${reply}'"
       break
     fi
@@ -266,10 +259,10 @@ function prompt_custom() {
 }
 
 function prompt_password() {
-  PROMPT="${1}"
-  VALUE_VAR="${2}"
+  local PROMPT="${1}"
+  local VALUE_VAR="${2}"
 
-  default="$(eval "echo \${${VALUE_VAR}}")"
+  local default="$(eval "echo \${${VALUE_VAR}}")"
 
   while true; do
     echo -n "${PROMPT} [${default}]: "
@@ -301,6 +294,41 @@ function prompt_password() {
   done
 }
 
+function prompt_yes_no() {
+  local PROMPT="${1}"
+  local VALUE_VAR="${2}"
+
+  local options=''
+  local default="$(eval "echo \${${VALUE_VAR}}")"
+  if [[ -z "${default}" ]] || [[ "${default}" =~ ^(Y|y|Yes|yes| )$ ]]; then
+    default='yes'
+    options="Y/n"
+  else
+    default='no'
+    options="y/N"
+  fi
+
+  while true; do
+    echo -n "${PROMPT} [${options}]? "
+    read_safe reply_yn
+    if [[ -z "${reply_yn}" ]]; then
+      eval "${VALUE_VAR}='${default}'"
+      echo "Entered: ${default}"
+      break
+    elif [[ "${reply_yn}" =~ ^(Y|y|Yes|yes| )$ ]]; then
+      eval "${VALUE_VAR}='yes'"
+      echo "Entered: yes"
+      break
+    elif [[ "${reply_yn}" =~ ^(N|n|No|no)$ ]]; then
+      eval "${VALUE_VAR}='no'"
+      echo "Entered: no"
+      break
+    else
+      echo "Invalid option. Please try again."
+    fi
+  done
+}
+
 function docker_storage_driver() {
   # TODO: switch to using --format instead of grep (requires Docker 1.13+)
   # Pipe to echo to remove surrounding quotes.
@@ -314,6 +342,10 @@ function docker_server_version() {
 
 function docker_kernel_version() {
   docker info | grep "^Kernel Version" | sed 's/.*: //'
+}
+
+function docker_available_memory() {
+  docker run --rm alpine cat /proc/meminfo | grep MemAvailable | awk '{print $2}'
 }
 
 # See https://stackoverflow.com/a/7860705 for details on escaping Makefile variables.
@@ -352,19 +384,13 @@ while true; do
   DCOS_INSTALLER_PATH='dcos_generate_config.sh'
 
   echo
-  while true; do
-    echo -n "Download the latest stable DC/OS installer [Y/n]? "
-    read_safe confirm
-    if [[ -z "${confirm}" ]] || [[ "${confirm}" =~ ^(Y|y|Yes|yes| )$ ]]; then
-      download_installer "${DCOS_INSTALLER_PATH}"
-      #TODO: checksum match or retry
-      break 2
-    elif [[ "${confirm}" =~ ^(N|n|No|no)$ ]]; then
-      continue 2
-    else
-      echo "Invalid option. Please try again."
-    fi
-  done
+  CONFIRM_DOWNLOAD='yes'
+  prompt_yes_no 'Download the latest stable DC/OS installer' 'CONFIRM_DOWNLOAD'
+  if [[ "${CONFIRM_DOWNLOAD}" != 'yes' ]]; then
+    continue
+  fi
+  download_installer "${DCOS_INSTALLER_PATH}"
+  break
 done
 
 validate_installer_path "${DCOS_INSTALLER_PATH}"
@@ -395,21 +421,41 @@ echo "Detecting Docker kernel version..."
 DOCKER_KERNEL_VERSION="$(docker_kernel_version)"
 echo "Kernel Version: ${DOCKER_KERNEL_VERSION}"
 
-# Docker-for-Mac-only setup
-if [[ "$(uname)" == 'Darwin' ]] && [[ "${DOCKER_KERNEL_VERSION}" == *"-moby" ]]; then
-  # Docker 1.13.1 required
+echo
+echo "Detecting Docker for Mac..."
+DOCKER_FOR_MAC="$([[ "$(uname)" == 'Darwin' ]] && [[ "${DOCKER_KERNEL_VERSION}" == *"-moby" ]] && echo 'true' || echo 'false')"
+echo "Docker for Mac: ${DOCKER_FOR_MAC}"
+
+if [[ "${DOCKER_FOR_MAC}" == 'true' ]]; then
+  # Docker 1.13.1 required (1.11.2 has a Docker-for-Mac-specific bug)
   if semverLT "${DOCKER_SERVER_VERSION}" "1.13.1"; then
     echo >&2 "Unsupported Docker server version! Requires 1.13.1 or greater."
     exit 2
   fi
+else
+  # Docker 1.11.2 required
+  if semverLT "${DOCKER_SERVER_VERSION}" "1.11.2"; then
+    echo >&2 "Unsupported Docker server version! Requires 1.11.2 or greater."
+    exit 2
+  fi
+fi
 
-  echo
-  echo "Detecting Docker for Mac memory..."
-  DOCKER_SERVER_MEMORY="$(docker_for_mac_memory)"
-  echo "Docker Memory: ${DOCKER_SERVER_MEMORY}"
+echo
+echo "Detecting Docker available memory..."
+DOCKER_AVAILABLE_MEMORY="$(docker_available_memory)"
+echo "Available Memory: ${DOCKER_AVAILABLE_MEMORY} kB"
 
-  if [[ "${DOCKER_SERVER_MEMORY}" -lt '6144' ]]; then
-    echo >&2 "Insufficient Docker for Mac memory! Requires 6 GiB or more."
+# 2147483 kB ~ 2 GiB (Docker for Mac Default)
+# 4294967 kB ~ 4 GiB (Required for Smoke Test)
+# 6442450 kB ~ 6 GiB (Recommended)
+if [[ "${DOCKER_AVAILABLE_MEMORY}" -lt '4294967' ]]; then
+  echo >&2 "Insufficient Available Memory! Requires 4 GiB or more (6 GiB recommended)."
+  if [[ "${DOCKER_FOR_MAC}" == 'true' ]]; then
+    echo >&2 "See Docker for Mac > Preferences > Advanced > Memory"
+  fi
+  FORCE_CONTINUE='no'
+  prompt_yes_no 'Continue anyway' 'FORCE_CONTINUE'
+  if [[ "${FORCE_CONTINUE}" != 'yes' ]]; then
     exit 2
   fi
 fi
@@ -449,17 +495,45 @@ MESOS_SYSTEMD_ENABLE_SUPPORT_OPTIONS=(true false)
 prompt_select "Enable Mesos systemd support (requires systemd on host)" "MESOS_SYSTEMD_ENABLE_SUPPORT" "MESOS_SYSTEMD_ENABLE_SUPPORT_OPTIONS"
 
 echo
-NUM_MASTER_NODES='1'
-NUM_MASTER_NODES_OPTIONS=(1 3 5 7 9)
-prompt_select_custom "Select number of master nodes" "NUM_MASTER_NODES" "NUM_MASTER_NODES_OPTIONS"
+while true; do
+  NUM_MASTER_NODES='1'
+  prompt_custom "Select number of master nodes (odd number, 1-9)" "NUM_MASTER_NODES"
+  if ! [[ "${NUM_MASTER_NODES}" =~ ^[0-9]+$ ]]; then
+    echo >&2 "Invalid option. Input must be a number. Please try again."
+    continue
+  fi
+  if [[ "$((${NUM_MASTER_NODES}%2))" == '0' ]]; then
+    echo >&2 "Invalid option. Number of master nodes must be odd. Please try again."
+    continue
+  fi
+  if [[ "${NUM_MASTER_NODES}" -lt '1' ]] || [[ "${NUM_MASTER_NODES}" -gt '9' ]]; then
+    echo >&2 "Invalid option. Number of master nodes must be between 1 and 9. Please try again."
+    continue
+  fi
+  break
+done
 
 echo
-NUM_AGENT_NODES='1'
-prompt_custom "Enter number of agent nodes" "NUM_AGENT_NODES"
+while true; do
+  NUM_AGENT_NODES='1'
+  prompt_custom "Enter number of agent nodes" "NUM_AGENT_NODES"
+  if ! [[ "${NUM_AGENT_NODES}" =~ ^[0-9][0-9]*$ ]]; then
+    echo >&2 "Invalid option. Input must be a number. Please try again."
+    continue
+  fi
+  break
+done
 
 echo
-NUM_PUBLIC_AGENT_NODES='1'
-prompt_custom "Enter number of public agent nodes" "NUM_PUBLIC_AGENT_NODES"
+while true; do
+  NUM_PUBLIC_AGENT_NODES='1'
+  prompt_custom "Enter number of public agent nodes" "NUM_PUBLIC_AGENT_NODES"
+  if ! [[ "${NUM_PUBLIC_AGENT_NODES}" =~ ^[0-9]+$ ]]; then
+    echo >&2 "Invalid option. Input must be a number. Please try again."
+    continue
+  fi
+  break
+done
 
 # Enterprise-only setup
 if [[ "${DCOS_VARIANT}" == "ee" ]]; then
