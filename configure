@@ -345,7 +345,7 @@ function docker_kernel_version() {
 }
 
 function docker_available_memory() {
-  docker run --rm alpine cat /proc/meminfo | grep MemAvailable | awk '{print $2}'
+  docker run --rm ${INTERACTIVE} alpine cat /proc/meminfo | grep MemAvailable | awk '{print $2}'
 }
 
 # See https://stackoverflow.com/a/7860705 for details on escaping Makefile variables.
@@ -358,7 +358,7 @@ function escape_for_makefile() {
 # /proc/$PID/comm is only available in Linux 2.6.33 and later.
 function host_init_sys() {
   # trim invisible characters
-  docker run ${INTERACTIVE} -v /proc:/host/proc:ro alpine cat /host/proc/1/comm | tr -d '[:cntrl:]'
+  docker run --rm ${INTERACTIVE} -v /proc:/host/proc:ro alpine cat /host/proc/1/comm | tr -d '[:cntrl:]'
 }
 
 # Detect current Docker for Mac memory configuration (in MiB)
