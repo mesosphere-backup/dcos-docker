@@ -67,7 +67,9 @@ function await() {
       STATUS_OUT=$(eval "${STATUS_CMD}" 2>&1)
       if [[ "${STATUS_OUT}" != "${PREV_STATUS_OUT}" ]]; then
         PREV_STATUS_OUT="${STATUS_OUT}"
-        echo >&2 # newline
+        if [[ "${PROGRESS}" == "dots" ]]; then
+          echo >&2 # newline
+        fi
         echo "${STATUS_OUT}" >&2
       fi
     fi
