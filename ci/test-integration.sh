@@ -47,7 +47,7 @@ mv make-config.mk.bak make-config.mk
 make
 
 # Wait
-make postflight
+make postflight POSTFLIGHT_PROGRESS=--progress=time
 
 # Cleanup hosts on exit
 function cleanup2() {

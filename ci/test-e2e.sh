@@ -52,7 +52,7 @@ trap cleanup EXIT
 make ${MAKE_ARGS}
 
 # Wait
-make postflight ${MAKE_ARGS}
+make postflight ${MAKE_ARGS} POSTFLIGHT_PROGRESS=--progress=time
 
 # Cleanup hosts on exit
 function cleanup2() {

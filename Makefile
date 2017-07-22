@@ -468,6 +468,6 @@ endef
 # @param number	  ID of the container.
 define postflight_container
 @echo "+ Checking node health ($(1)$(2))"
-@docker exec $(INTERACTIVE) $(1)$(2) dcos-postflight
+@docker exec $(INTERACTIVE) $(1)$(2) dcos-postflight $(POSTFLIGHT_PROGRESS)
 @echo "+ Node Healthy ($(1)$(2))"
 endef

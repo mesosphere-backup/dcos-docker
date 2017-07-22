@@ -59,6 +59,7 @@ CUSTOM_MASTER_VOLUMES :=
 CUSTOM_AGENT_VOLUMES :=
 CUSTOM_PUBLIC_AGENT_VOLUMES :=
 
+POSTFLIGHT_PROGRESS := --progress=dots
 
 #########################################
 #### Enterprise-only Config Defaults ####
