@@ -40,7 +40,7 @@ trap cleanup EXIT
 ./configure --auto
 
 # Networking integration tests require 2 private agents
-sed 's/^MASTERS :=.*/MASTERS := 2/' make-config.mk > make-config.mk.bak
+sed 's/^AGENTS :=.*/AGENTS := 2/' make-config.mk > make-config.mk.bak
 mv make-config.mk.bak make-config.mk
 
 # Deploy
