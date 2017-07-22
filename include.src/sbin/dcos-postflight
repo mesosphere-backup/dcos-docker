@@ -96,7 +96,7 @@ await
 if [[ -e "/opt/mesosphere/bin/dcos-diagnostics" ]]; then
   # DC/OS >= 1.10
   CMD="/opt/mesosphere/bin/dcos-diagnostics --diag"
-  STATUS_CMD="${CMD} 2>&1 | grep '^\[.*\]:' | sed 's/^\[\(.*\)\]:.*/\1/' | sort | tr '\n' ',' | sed 's/,$//' | xargs echo 'Pending:'"
+  STATUS_CMD="echo \"\$(${CMD} 2>&1 || true)\" | grep '^\[.*\]:' | sed 's/^\[\(.*\)\]:.*/\1/' | sort | tr '\n' ',' | sed 's/,$//' | xargs echo 'Pending:'"
 elif [[ -e "/opt/mesosphere/bin/3dt" ]]; then
   # DC/OS <= 1.9
   CMD="/opt/mesosphere/bin/3dt --diag"
@@ -118,7 +118,7 @@ else
   echo "Postflight Failure: dcos-diagnostics not found"
   exit 1
 fi
-echo ${INLINE} "Polling dcos-diagnostics (${TIMEOUT_SECONDS}s timeout)" >&2
+TARGET="dcos-diagnostics"
 await
 
 # Different nodes types serve the API on different ports
