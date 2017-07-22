@@ -2,6 +2,8 @@
 
 # Polls dcos-download, dcos-setup, dcos-diagnostics, and dcos-adminrouter to determine node install progress.
 
+set -o errexit -o nounset -o pipefail
+
 # null globs required for finding cfg_files
 shopt -s nullglob
 
@@ -31,12 +33,12 @@ function await() {
 }
 
 echo -n "Polling dcos-download (${TIMEOUT_SECONDS}s timeout)" >&2
-CMD="systemctl status dcos-download | grep 'Main PID:.*status=0/SUCCESS.*'"
+CMD="echo \"\$(systemctl status dcos-download || true)\" | grep 'Main PID:.*status=0/SUCCESS.*'"
 STATUS_CMD=""
 await
 
 echo -n "Polling dcos-setup (${TIMEOUT_SECONDS}s timeout)" >&2
-CMD="systemctl status dcos-setup | grep 'Main PID:.*status=0/SUCCESS.*'"
+CMD="echo \"\$(systemctl status dcos-setup || true)\" | grep 'Main PID:.*status=0/SUCCESS.*'"
 STATUS_CMD=""
 await
 
