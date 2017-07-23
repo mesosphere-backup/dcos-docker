@@ -3,7 +3,8 @@
 # Performs End To End (e2e) testing of DC/OS Docker.
 #
 # Options:
-#   DCOS_VERSION (defaults to the "latest" in dcos-versions.yaml)
+#   DCOS_VERSION Version of the supplied DC/OS installer (defaults to the latest stable version)
+#   LOG_LINES    Number of log lines to export for each node (exports all, if unset)
 #
 # Usage:
 # $ ci/test-e2e.sh
@@ -12,6 +13,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 set -o xtrace
+
+if [[ -n "${LOG_LINES:-}" ]]; then
+  LOG_LINES_ARG="-n=${LOG_LINES}"
+else
+  LOG_LINES_ARG=""
+fi
 
 # Networking integration tests require 2 private agents
 MAKE_ARGS="AGENTS=2"
@@ -44,7 +51,7 @@ make clean ${MAKE_ARGS}
 
 # Destroy All VMs on exit
 function cleanup() {
-  ci/dcos-logs.sh || true
+  ci/dcos-logs.sh ${LOG_LINES_ARG} || true
   make clean ${MAKE_ARGS}
 }
 trap cleanup EXIT

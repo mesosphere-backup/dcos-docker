@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 
-# Extracts the last N (default 10000) lines from journalctl on each node.
+# Extracts the journalctl logs on each node.
+# Writes to <container-name>.log
+#
+# Flags:
+#  -n --lines=INTEGER    Number of journal entries to show
 #
 # Usage:
 # $ ci/dcos-logs.sh [--lines=N]
 
 set -o errexit -o nounset -o pipefail
 
-LINES=10000
-
 for i in "$@"; do
   case ${i} in
-    -l=*|--lines=*)
+    -n=*|--lines=*)
       LINES="${i#*=}"
+      LINES_ARG="-n ${LINES}"
       shift # past argument=value
       ;;
     *)
@@ -27,7 +30,7 @@ function extract_logs() {
   local i=1
   while docker inspect "${CTR_NAME}${i}" &>/dev/null; do
     echo "Extracting Logs: ${CTR_NAME}${i}"
-    docker exec -i "${CTR_NAME}${i}" journalctl -n ${LINES} > "${CTR_NAME}${i}.log"
+    docker exec -i "${CTR_NAME}${i}" journalctl ${LINES_ARG:-} > "${CTR_NAME}${i}.log"
     i+=1
   done
 }

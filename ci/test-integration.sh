@@ -2,6 +2,9 @@
 
 # Performs smoke testing of DC/OS Docker.
 #
+# Options:
+#   LOG_LINES    Number of log lines to export for each node (exports all, if unset)
+#
 # Usage:
 # $ ci/test-e2e.sh
 
@@ -9,6 +12,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 set -o xtrace
+
+if [[ -n "${LOG_LINES:-}" ]]; then
+  LOG_LINES_ARG="-n=${LOG_LINES}"
+else
+  LOG_LINES_ARG=""
+fi
 
 # Require bash 4+ for associative arrays
 if [[ ${BASH_VERSINFO[0]} -lt 4 ]]; then
@@ -32,7 +41,7 @@ make clean
 
 # Destroy All VMs on exit
 function cleanup() {
-  ci/dcos-logs.sh || true
+  ci/dcos-logs.sh ${LOG_LINES_ARG} || true
   make clean
 }
 trap cleanup EXIT
