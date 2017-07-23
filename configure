@@ -369,6 +369,13 @@ function docker_for_mac_memory() {
   )
 }
 
+# Detect name servers from inside a docker container.
+# This works for both local and remote (Docker for Mac) docker daemons,
+# and also for any proxies Docker is configured to use.
+function docker_nameservers() {
+  docker run --rm alpine cat /etc/resolv.conf | grep '^nameserver.*' | tr -s ' ' | cut -d' ' -f2 | paste -sd ' ' -
+}
+
 #########################
 #### Execution Start ####
 #########################
@@ -483,7 +490,7 @@ prompt_select "Select inner Docker version" "DOCKER_VERSION" "DOCKER_VERSION_OPT
 echo
 echo "Detecting Docker host init system..."
 DOCKER_HOST_INIT_SYS="$(host_init_sys)"
-echo "Init System: '${DOCKER_HOST_INIT_SYS}'"
+echo "Init System: ${DOCKER_HOST_INIT_SYS}"
 
 echo
 if [[ "${DOCKER_HOST_INIT_SYS}" == 'systemd' ]]; then
@@ -493,6 +500,11 @@ else
 fi
 MESOS_SYSTEMD_ENABLE_SUPPORT_OPTIONS=(true false)
 prompt_select "Enable Mesos systemd support (requires systemd on host)" "MESOS_SYSTEMD_ENABLE_SUPPORT" "MESOS_SYSTEMD_ENABLE_SUPPORT_OPTIONS"
+
+echo
+echo "Detecting DNS resolvers..."
+RESOLVERS="$(docker_nameservers)"
+echo "DNS Resolvers: ${RESOLVERS}"
 
 echo
 while true; do
@@ -567,6 +579,7 @@ DCOS_GENERATE_CONFIG_PATH := \$(CURDIR)/${DCOS_INSTALLER_PATH}
 DOCKER_VERSION := ${DOCKER_VERSION}
 DOCKER_STORAGEDRIVER := ${DOCKER_STORAGEDRIVER}
 MESOS_SYSTEMD_ENABLE_SUPPORT := ${MESOS_SYSTEMD_ENABLE_SUPPORT}
+RESOLVERS := ${RESOLVERS}
 MASTERS := ${NUM_MASTER_NODES}
 AGENTS := ${NUM_AGENT_NODES}
 PUBLIC_AGENTS := ${NUM_PUBLIC_AGENT_NODES}

@@ -61,6 +61,9 @@ CUSTOM_PUBLIC_AGENT_VOLUMES :=
 
 POSTFLIGHT_PROGRESS := --progress=dots
 
+# Resolvers to use when configuring DC/OS (space delimited IPs).
+RESOLVERS := 8.8.8.8
+
 #########################################
 #### Enterprise-only Config Defaults ####
 #########################################

@@ -22,9 +22,6 @@ INSTALLER_CMD := \
 BOOTSTRAP_GENCONF_PATH := $(GENCONF_DIR)/serve/
 BOOTSTRAP_TMP_PATH := /opt/dcos_install_tmp
 
-# Detect default resolvers inside a docker container.
-RESOLVERS := $(shell docker run --rm alpine cat /etc/resolv.conf | grep '^nameserver.*' | tr -s ' ' | cut -d' ' -f2 | paste -sd ' ' -)
-
 # Local docker systemd service variables
 INCLUDE_DIR_SRC := $(CURDIR)/include.src
 INCLUDE_DIR := $(CURDIR)/include
