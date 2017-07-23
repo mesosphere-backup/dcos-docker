@@ -32,6 +32,7 @@ make clean
 
 # Destroy All VMs on exit
 function cleanup() {
+  ci/dcos-logs.sh || true
   make clean
 }
 trap cleanup EXIT
