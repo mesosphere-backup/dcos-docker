@@ -11,3 +11,4 @@ packer_cache
 output-virtualbox-ovf
 .idea
 make-config.mk
+*.log
