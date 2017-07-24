@@ -59,15 +59,6 @@ AGENT_VOLUMES := \
 BOOTSTRAP_VOLUMES := \
 	-v $(BOOTSTRAP_GENCONF_PATH):$(BOOTSTRAP_TMP_PATH):ro
 
-# The home directory is mounted as a development convenience.
-# However, on some platforms, where $(HOME) is not set, we default to not mounting anything.
-# Otherwise a mount of `::ro` would be attempted.
-ifdef HOME
-    HOME_VOLUMES := -v $(HOME):$(HOME):ro
-else
-    HOME_VOLUMES :=
-endif
-
 # if this session isn't interactive, then we don't want to allocate a
 # TTY, which would fail, but if it is interactive, we do want to attach
 # so that the user can send e.g. ^C through.
@@ -138,7 +129,7 @@ postflight: ## Polls DC/OS until it is healthy (5m timeout)
 
 master: ## Starts the containers for DC/OS masters.
 	@echo "+ Starting master nodes"
-	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(NODE_VOLUMES) $(HOME_VOLUMES) $(CUSTOM_MASTER_VOLUMES)))
+	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(NODE_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_MASTER_VOLUMES)))
 
 $(MESOS_SLICE):
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
@@ -149,11 +140,11 @@ $(MESOS_SLICE):
 
 agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	@echo "+ Starting agent nodes"
-	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(HOME_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_AGENT_VOLUMES)))
+	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_AGENT_VOLUMES)))
 
 public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
 	@echo "+ Starting public agent nodes"
-	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(HOME_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_PUBLIC_AGENT_VOLUMES)))
+	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_PUBLIC_AGENT_VOLUMES)))
 
 $(DCOS_GENERATE_CONFIG_PATH):
 	curl --fail --location --show-error -o $@ $(DCOS_GENERATE_CONFIG_URL)

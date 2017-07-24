@@ -507,6 +507,26 @@ RESOLVERS="$(docker_nameservers)"
 echo "DNS Resolvers: ${RESOLVERS}"
 
 echo
+echo "Detecting User..."
+echo "User: ${USER}"
+
+echo
+echo "Detecting Home..."
+echo "Home: ${HOME:-}"
+
+echo
+CUSTOM_VOLUMES=''
+# The home directory may be mounted for development convenience.
+# Do not mount /root, otherwise ssh auth will fail (among other things).
+if [[ -n "${HOME:-}" ]] && [[ "${USER}" != "root" ]]; then
+  CONFIRM='yes'
+  prompt_yes_no "Mount ${HOME} directory" 'CONFIRM'
+  if [[ "${CONFIRM}" == 'yes' ]]; then
+    CUSTOM_VOLUMES="-v ${HOME}:${HOME}:ro"
+  fi
+fi
+
+echo
 while true; do
   NUM_MASTER_NODES='1'
   prompt_custom "Select number of master nodes (odd number, 1-9)" "NUM_MASTER_NODES"
@@ -580,6 +600,7 @@ DOCKER_VERSION := ${DOCKER_VERSION}
 DOCKER_STORAGEDRIVER := ${DOCKER_STORAGEDRIVER}
 MESOS_SYSTEMD_ENABLE_SUPPORT := ${MESOS_SYSTEMD_ENABLE_SUPPORT}
 RESOLVERS := ${RESOLVERS}
+CUSTOM_VOLUMES := ${CUSTOM_VOLUMES}
 MASTERS := ${NUM_MASTER_NODES}
 AGENTS := ${NUM_AGENT_NODES}
 PUBLIC_AGENTS := ${NUM_PUBLIC_AGENT_NODES}
