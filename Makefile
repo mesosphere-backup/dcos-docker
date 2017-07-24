@@ -302,7 +302,7 @@ clean: clean-containers clean-slice clean-certs ## Stops all containers and remo
 # https://github.com/moby/moby/issues/8755 - Fixed in Docker 17.06+
 export TEST_INTEGRATION
 test: ips ## Executes the integration tests
-	ssh-keygen -R $(firstword $(MASTER_IPS))
+	[ -f ~/.ssh/known_hosts ] && ssh-keygen -R $(firstword $(MASTER_IPS)) || true
 	echo "$$TEST_INTEGRATION" | ssh -T -i $(GENCONF_DIR)/ssh_key -l root -p 22 -o StrictHostKeyChecking=no $(firstword $(MASTER_IPS))
 
 hosts: ## Creates entries in /etc/hosts
