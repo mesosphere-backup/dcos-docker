@@ -507,18 +507,14 @@ RESOLVERS="$(docker_nameservers)"
 echo "DNS Resolvers: ${RESOLVERS}"
 
 echo
-echo "Detecting User..."
-echo "User: ${USER}"
-
-echo
 echo "Detecting Home..."
 echo "Home: ${HOME:-}"
 
-echo
-CUSTOM_VOLUMES=''
 # The home directory may be mounted for development convenience.
 # Do not mount /root, otherwise ssh auth will fail (among other things).
-if [[ -n "${HOME:-}" ]] && [[ "${USER}" != "root" ]]; then
+CUSTOM_VOLUMES=''
+if [[ -n "${HOME:-}" ]] && [[ "${HOME}" != "/root" ]]; then
+  echo
   CONFIRM='yes'
   prompt_yes_no "Mount ${HOME} directory" 'CONFIRM'
   if [[ "${CONFIRM}" == 'yes' ]]; then
