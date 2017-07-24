@@ -6,15 +6,24 @@
 # Usage:
 # $ ci/test-oinker.sh
 
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o xtrace
+set -o errexit -o nounset -o pipefail
 
 OINKER_HOST="${OINKER_HOST:-oinker.acme.org}"
 
 project_dir=$(cd "$(dirname "${BASH_SOURCE}")/.." && pwd -P)
 cd "${project_dir}"
+
+source vendor/semver_bash/semver.sh
+
+# CLI v0.5.3 added a confirmation prompt to uninstall and --yes to bypass it.
+CLI_VERSION="$(dcos --version | grep dcoscli.version | cut -d'=' -f2)"
+if semverLT "${CLI_VERSION}" "0.5.3"; then
+  CONFIRM=''
+else
+  CONFIRM='--yes'
+fi
+
+set -o xtrace
 
 # Install Cassandra
 dcos package install --options=examples/oinker/pkg-cassandra.json cassandra --yes
@@ -41,10 +50,10 @@ ci/test-oinker-oinking.sh
 dcos marathon app remove oinker
 
 # Uninstall Marathon-LB
-dcos package uninstall marathon-lb
+dcos package uninstall marathon-lb ${CONFIRM}
 
 # Uninstall Cassandra
-dcos package uninstall cassandra
+dcos package uninstall cassandra ${CONFIRM}
 
 # Uninstall Cassandra framework
 dcos node ssh --master-proxy --leader --user=root --option StrictHostKeyChecking=no --option IdentityFile=$(pwd)/genconf/ssh_key \
