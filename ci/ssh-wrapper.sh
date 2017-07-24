@@ -2,7 +2,14 @@
 
 set -o errexit -o nounset -o pipefail
 
+echo 'Starting ssh-agent...'
 eval $(ssh-agent -s)
-trap "kill $SSH_AGENT_PID" EXIT
 
-exec "$@"
+function cleanup() {
+  echo 'Killing ssh-agent...'
+  kill ${SSH_AGENT_PID}
+}
+trap cleanup EXIT
+
+# DO NOT EXEC - exec nullifies traps
+"$@"
