@@ -127,6 +127,10 @@ postflight: ## Polls DC/OS until it is healthy (5m timeout)
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(MASTERS)),$(call postflight_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 	@echo "+ DC/OS Healthy (All Nodes)"
 
+postflight-cli: ## Runs the DC/OS installer with --postflight.
+	echo "+ Running postflight"
+	$(INSTALLER_CMD) --postflight
+
 master: ## Starts the containers for DC/OS masters.
 	@echo "+ Starting master nodes"
 	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(NODE_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_MASTER_VOLUMES)))
