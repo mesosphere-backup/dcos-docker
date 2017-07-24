@@ -127,7 +127,7 @@ postflight: ## Polls DC/OS until it is healthy (5m timeout)
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(MASTERS)),$(call postflight_container,$(PUBLIC_AGENT_CTR),$(NUM)))
 	@echo "+ DC/OS Healthy (All Nodes)"
 
-master: ## Starts the containers for DC/OS masters.
+master: $(BOOTSTRAP_GENCONF_PATH) ## Starts the containers for DC/OS masters.
 	@echo "+ Starting master nodes"
 	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call start_dcos_container,$(MASTER_CTR),$(NUM),$(NODE_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_MASTER_VOLUMES)))
 
@@ -137,12 +137,11 @@ $(MESOS_SLICE):
 		sudo systemctl start mesos_executors.slice; \
 	fi
 
-
-agent: $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
+agent: $(BOOTSTRAP_GENCONF_PATH) $(MESOS_SLICE) ## Starts the containers for DC/OS agents.
 	@echo "+ Starting agent nodes"
 	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call start_dcos_container,$(AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_AGENT_VOLUMES)))
 
-public_agent: $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
+public_agent: $(BOOTSTRAP_GENCONF_PATH) $(MESOS_SLICE) ## Starts the containers for DC/OS public agents.
 	@echo "+ Starting public agent nodes"
 	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call start_dcos_container,$(PUBLIC_AGENT_CTR),$(NUM),$(NODE_VOLUMES) $(AGENT_VOLUMES) $(CUSTOM_VOLUMES) $(CUSTOM_PUBLIC_AGENT_VOLUMES)))
 
@@ -160,6 +159,9 @@ $(GENCONF_DIR):
 $(GENCONF_DIR)/ip-detect: $(GENCONF_DIR) ## Writes the ip-detect script to return node IP.
 	@cp $(GENCONF_DIR_SRC)/ip-detect $@
 	@chmod +x $@
+
+$(BOOTSTRAP_GENCONF_PATH):
+	@mkdir -p $@
 
 $(INCLUDE_DIR):
 	@mkdir -p $@
