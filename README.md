@@ -6,8 +6,8 @@ Each container on the host emulates a DC/OS node, using Docker-in-Docker to run 
 
 DC/OS Docker is designed to optimize development cycle time. For a more production-like local experience, see [DC/OS Vagrant](https://github.com/dcos/dcos-vagrant) which runs each node in its own VM.
 
-Smoke Tests (latest stable DC/OS): [![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=dcos-docker-test-smoke)](https://jenkins.mesosphere.com/service/jenkins/view/dcos-docker/job/dcos-docker-test-smoke/)
-Integration Tests (latest stable DC/OS): [![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=dcos-docker-test-integration)](https://jenkins.mesosphere.com/service/jenkins/view/dcos-docker/job/dcos-docker-test-integration/)
+- Smoke Tests (latest stable DC/OS): [![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=dcos-docker-test-smoke)](https://jenkins.mesosphere.com/service/jenkins/view/dcos-docker/job/dcos-docker-test-smoke/)
+- Integration Tests (latest stable DC/OS): [![Build Status](https://jenkins.mesosphere.com/service/jenkins/buildStatus/icon?job=dcos-docker-test-integration)](https://jenkins.mesosphere.com/service/jenkins/view/dcos-docker/job/dcos-docker-test-integration/)
 
 ## Issue Tracking
 
