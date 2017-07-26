@@ -70,7 +70,7 @@ TEST_ARGS='-vv'
 # Report test results as junit xml
 TEST_ARGS+=' --junitxml=test-junit.xml'
 # Skip CCM-only tests
-TEST_ARGS+=" -m 'not ccm'"
+TEST_ARGS+=' -m "not ccm"'
 # Use teamcity-messages to fold unbuffered stdout/stderr
 if [[ -n "${TEAMCITY_VERSION}" ]]; then
   TEST_ARGS+=' --teamcity --capture=no'
