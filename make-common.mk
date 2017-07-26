@@ -93,6 +93,10 @@ define get_public_agent_ips
 $(eval PUBLIC_AGENT_IPS := $(PUBLIC_AGENT_IPS) $(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)$(1)))
 endef
 
+# Define the function to count the number of containers with the provided prefix
+# @param name	First part of the container name.
+count_running_containers = $(shell i=1; while docker inspect "$(1)$$i" &>/dev/null; do i=$$(($$i + 1)); done; echo "$$(($$i - 1))")
+
 # Define the function to exit if a container is not running.
 # @param name	  First part of the container name.
 # @param number	  ID of the container.
@@ -107,7 +111,7 @@ endef
 # @param name	  First part of the container name.
 # @param number	  ID of the container.
 define remove_container
-docker rm -fv $(1)$(2) > /dev/null 2>&1 || true;
+docker rm -fv $(1)$(2) &> /dev/null || true;
 endef
 
 # Define the function to add /etc/hosts entries.

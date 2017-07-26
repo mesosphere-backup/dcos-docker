@@ -274,11 +274,11 @@ web: preflight ## Run the DC/OS installer with --web.
 clean-certs: ## Remove all the certs generated for the registry.
 	$(RM) -r $(CERTS_DIR)
 
-clean-containers: ## Removes and cleans up the master, agent, and installer containers.
+clean-containers: ## Removes and cleans up all master, agent, and installer containers.
 	@docker rm -fv $(INSTALLER_CTR) > /dev/null 2>&1 || true
-	$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)),$(call remove_container,$(MASTER_CTR),$(NUM)))
-	$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)),$(call remove_container,$(AGENT_CTR),$(NUM)))
-	$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM)))
+	$(foreach NUM,$(shell MAX=$(call count_running_containers,$(MASTER_CTR)) && [[ $$MAX == 0 ]] || seq 1 1 $$MAX),$(call remove_container,$(MASTER_CTR),$(NUM))${newline})
+	$(foreach NUM,$(shell MAX=$(call count_running_containers,$(AGENT_CTR)) && [[ $$MAX == 0 ]] || seq 1 1 $$MAX),$(call remove_container,$(AGENT_CTR),$(NUM))${newline})
+	$(foreach NUM,$(shell MAX=$(call count_running_containers,$(PUBLIC_AGENT_CTR)) && [[ $$MAX == 0 ]] || seq 1 1 $$MAX),$(call remove_container,$(PUBLIC_AGENT_CTR),$(NUM))${newline})
 
 clean-slice: ## Removes and cleanups up the systemd slice for the mesos executor.
 	@if [ "$(MESOS_SYSTEMD_ENABLE_SUPPORT)" == "true" ]; then \
