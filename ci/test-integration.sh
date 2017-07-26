@@ -36,10 +36,10 @@ echo "${BASH_VERSINFO[@]}"
 # Check for running containers
 docker ps
 
-# Destroy All VMs
+# Destroy all containers
 make clean
 
-# Destroy All VMs on exit
+# Destroy all containers on exit
 function cleanup() {
   ci/dcos-logs.sh ${LOG_LINES_ARG} || true
   make clean
@@ -53,11 +53,31 @@ trap cleanup EXIT
 sed 's/^AGENTS :=.*/AGENTS := 2/' make-config.mk > make-config.mk.bak
 mv make-config.mk.bak make-config.mk
 
+# Unbuffered postflight output
+tee >> make-config.mk << EOM
+POSTFLIGHT_PROGRESS := --progress=time
+EOM
+
+# Verbose test output
+TEST_ARGS='-vv'
+# Report test results as junit xml
+TEST_ARGS+=' --junitxml=test-junit.xml'
+# Skip CCM-only tests
+TEST_ARGS+=" -m 'not ccm'"
+# Use teamcity-messages to fold unbuffered stdout/stderr
+if [[ -n "${TEAMCITY_VERSION}" ]]; then
+  TEST_ARGS+=' --teamcity --capture=no'
+fi
+# Configure integration tests
+tee >> make-config.mk << EOM
+DCOS_PYTEST_CMD := py.test ${TEST_ARGS}
+EOM
+
 # Deploy
 make
 
 # Wait
-make postflight POSTFLIGHT_PROGRESS=--progress=time
+make postflight
 
 # Cleanup hosts on exit
 function cleanup2() {
@@ -85,6 +105,4 @@ function cleanup3() {
 trap cleanup3 EXIT
 
 # Integration tests
-make test \
-  DCOS_PYTEST_CMD="py.test -vv --junitxml=test-junit.xml -m 'not ccm'" \
-  DCOS_PYTEST_DIR="/opt/mesosphere/active/dcos-integration-test/"
+make test
