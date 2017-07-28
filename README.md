@@ -42,6 +42,7 @@ Because containerization does not affect resource detection tools, each DC/OS no
 - git
 - make
 - bash
+- ssh-keygen (`openssl-server`)
 
 ## Quick Start
 
