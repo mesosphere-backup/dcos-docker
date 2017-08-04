@@ -456,6 +456,7 @@ set -o errexit -o nounset -o pipefail -o xtrace
 source /opt/mesosphere/environment.export
 source /opt/mesosphere/active/dcos-integration-test/util/test_env.export || true # old location
 source /opt/mesosphere/active/dcos-integration-test/test_env.export || true # old location
+export MASTER_HOSTS='$(subst ${space},${comma},$(MASTER_IPS))'
 export SLAVE_HOSTS='$(subst ${space},${comma},$(AGENT_IPS))'
 export PUBLIC_SLAVE_HOSTS='$(subst ${space},${comma},$(PUBLIC_AGENT_IPS))'
 cd '$(DCOS_PYTEST_DIR)'
