@@ -22,7 +22,7 @@ for version in "${versions[@]}"; do
 	suite="${version##*-}"
 	from="${distro}:${suite}"
 	if [[ "$distro" == "coreos" ]]; then
-		from="jess/coreos"
+		from="quay.io/shift/coreos:stable-1298.7.0"
 	fi
 
 	mkdir -p "$version"
