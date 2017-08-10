@@ -8,7 +8,7 @@ set -o errexit -o nounset -o pipefail
 shopt -s nullglob
 
 TIMEOUT_SECONDS="900"
-PROGRESS="dots"
+PROGRESS="time"
 
 # Parse arguments
 for i in "$@"; do
@@ -64,7 +64,7 @@ function await() {
   PREV_STATUS_OUT=""
   until eval "${PROGRESS_CMD}" >&2 && OUT=$(eval "${CMD}" 2>&1) || [[ TIMEOUT_SECONDS -eq 0 ]]; do
     if [[ -n "${STATUS_CMD}" ]]; then
-      STATUS_OUT=$(eval "${STATUS_CMD}" 2>&1)
+      STATUS_OUT=$(eval "${STATUS_CMD}" 2>&1 || true)
       if [[ "${STATUS_OUT}" != "${PREV_STATUS_OUT}" ]]; then
         PREV_STATUS_OUT="${STATUS_OUT}"
         if [[ "${PROGRESS}" == "dots" ]]; then
@@ -97,10 +97,15 @@ await
 # Support multiple historical versions of dcos-diagnostics
 if [[ -e "/opt/mesosphere/bin/dcos-diagnostics" ]]; then
   # DC/OS >= 1.10
-  CMD="/opt/mesosphere/bin/dcos-diagnostics --diag"
-  STATUS_CMD="echo \"\$(${CMD} 2>&1 || true)\" | grep '^\[.*\]:' | sed 's/^\[\(.*\)\]:.*/\1/' | sort | tr '\n' ',' | sed 's/,$//' | xargs echo 'Pending:'"
+  TARGET="dcos-diagnostics check node-poststart"
+  CMD="/opt/mesosphere/bin/dcos-diagnostics check node-poststart"
+  # parse the json output into something human readable, like:
+  # components_master:
+  #   component Admin Router Reloader has health status 1
+  STATUS_CMD="echo \"\$(${CMD} 2>&1 || true)\" | jq -r '.checks | to_entries[] | select(.value.status != 0) | \"\(.key):\\n  \(.value.output | split(\"\\n\") | map(select(length > 0)) | join(\"\\n  \"))\"'"
 elif [[ -e "/opt/mesosphere/bin/3dt" ]]; then
   # DC/OS <= 1.9
+  TARGET="3dt --diag"
   CMD="/opt/mesosphere/bin/3dt --diag"
   # 3dt --diag will complain about missing endpoints_config.json if not
   # passed explicitly. This error is not influencing the diagnostics status.
@@ -114,13 +119,13 @@ elif [[ -e "/opt/mesosphere/bin/3dt" ]]; then
   STATUS_CMD=""
 elif [[ -e "/opt/mesosphere/bin/dcos-diagnostics.py" ]]; then
   # DC/OS <= 1.6
+  TARGET="dcos-diagnostics.py"
   CMD="/opt/mesosphere/bin/dcos-diagnostics.py"
   STATUS_CMD=""
 else
   echo "Postflight Failure: dcos-diagnostics not found"
   exit 1
 fi
-TARGET="dcos-diagnostics"
 await
 
 # Different nodes types serve the API on different ports
