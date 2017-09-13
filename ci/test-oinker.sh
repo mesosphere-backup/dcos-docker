@@ -53,8 +53,5 @@ dcos marathon app remove oinker
 dcos package uninstall marathon-lb ${CONFIRM}
 
 # Uninstall Cassandra
+# Note: for versions of DC/OS before 1.10, janitor must be used to finalize cleanup
 dcos package uninstall cassandra ${CONFIRM}
-
-# Uninstall Cassandra framework
-dcos node ssh --leader --user=root --option StrictHostKeyChecking=no --option IdentityFile=$(pwd)/genconf/ssh_key \
-  "docker run mesosphere/janitor /janitor.py -r cassandra-role -p cassandra-principal -z dcos-service-cassandra"
