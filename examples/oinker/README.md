@@ -47,7 +47,7 @@ Use the following steps to install and access Oinker:
 1. Install Cassandra
 
     ```
-    dcos package install --options=examples/oinker/pkg-cassandra.json cassandra --yes
+    dcos package install --options=examples/oinker/pkg-cassandra-2.x.json cassandra --yes
     ```
 
     This minimal config only runs a single Cassandra node, unlike the default config that runs three.
@@ -65,7 +65,7 @@ Use the following steps to install and access Oinker:
 1. Install Oinker
 
     ```
-    dcos marathon app add examples/oinker/oinker.json
+    dcos marathon app add examples/oinker/oinker-2.x.json
     ```
 
     If Cassandra isn't completely ready before starting Oinker, Oinker may thrash and restart a few times before becoming healthy.
@@ -95,3 +95,20 @@ Use the following steps to install and access Oinker:
     ```
 
 1. Visit <http://oinker.acme.org> in a browser!
+
+## Configuration Options
+
+The Cassandra framework was rewritten for version 2.0.
+The new version requires 3 nodes and no longer allows seeds to be configured.
+So on DC/OS >= 1.9 the new configuration should be used.
+Older versions of DC/OS must use the older Cassandra 1.x.
+
+New 2.x Config:
+- [pkg-cassandra-2.x.json](pkg-cassandra-2.x.json)
+- [pkg-marathon-lb.json](pkg-marathon-lb.json)
+- [oinker-2.x.json](oinker-2.x.json)
+
+Old 1.x Config:
+- [pkg-cassandra-1.x.json](pkg-cassandra-1.x.json)
+- [pkg-marathon-lb.json](pkg-marathon-lb.json)
+- [oinker-1.x.json](oinker-1.x.json)

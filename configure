@@ -84,13 +84,13 @@ function validate_installer_path() {
   echo "Validating installer path..."
   if [[ -L "${DCOS_INSTALLER_PATH}" ]]; then
     #symlink
-    installer_link_path="$(readlink -f "${DCOS_INSTALLER_PATH}")"
+    installer_link_path="$(readlink "${DCOS_INSTALLER_PATH}")"
     installer_dir="$(dirname "${installer_link_path}")"
   else
     installer_dir="$(dirname "${DCOS_INSTALLER_PATH}")"
   fi
   if [[ -L "${installer_dir}" ]]; then
-    installer_dir="$(readlink -f "${installer_dir}")"
+    installer_dir="$(readlink "${installer_dir}")"
   fi
   installer_dir="$(cd "${installer_dir}" && pwd -P)"
 

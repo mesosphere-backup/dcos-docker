@@ -31,7 +31,7 @@
       "ignoreHttp1xx": false
     }
   ],
-  "cmd": "export OINKER_INSTANCE_NAME=${MESOS_TASK_ID} && oinker --cassandra-addr=node-0-server.cassandra.mesos --cassandra-repl=1",
+  "cmd": "export OINKER_INSTANCE_NAME=${MESOS_TASK_ID} && oinker --cassandra-addr=node-0-server.cassandra.mesos --cassandra-repl=3",
   "ports": [
     0
   ],

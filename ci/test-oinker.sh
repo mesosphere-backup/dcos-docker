@@ -23,18 +23,43 @@ else
   CONFIRM='--yes'
 fi
 
+DCOS_VERSION="$(dcos --version | grep dcos.version | cut -d'=' -f2)"
+
+# strip minor version and suffix
+if [[ "${DCOS_VERSION}" =~ ^([^.]*\.[^.-]*).* ]]; then
+  DCOS_VERSION="${BASH_REMATCH[1]}.0"
+fi
+
+# DC/OS 1.10 added auto-cleanup. Prior versions need to use the janitor.
+if semverLT "${DCOS_VERSION}" "1.10.0"; then
+  CASSANDRA_PKG_CLEANUP="true"
+fi
+
+# Latest Cassandra requires >= 1.9
+# https://github.com/mesosphere/universe/blob/version-3.x/repo/packages/C/cassandra/26/package.json#L3
+if semverLT "${DCOS_VERSION}" "1.9.0"; then
+  CASSANDRA_PKG_VERSION='1.x'
+else
+  CASSANDRA_PKG_VERSION='2.x'
+fi
+
 set -o xtrace
 
 # Install Cassandra
-dcos package install --options=examples/oinker/pkg-cassandra.json cassandra --yes
+dcos package install --options=examples/oinker/pkg-cassandra-${CASSANDRA_PKG_VERSION}.json cassandra --yes
 ci/test-app-health.sh 'cassandra'
+
+if [[ "${CASSANDRA_PKG_VERSION}" == '2.x' ]]; then
+  # Block until node deployment is complete (15 minute timeout)
+  ci/test-sdk-health.sh 'cassandra' 'cassandra' 900
+fi
 
 # Install Marathon-LB
 dcos package install --options=examples/oinker/pkg-marathon-lb.json marathon-lb --yes
 ci/test-app-health.sh 'marathon-lb'
 
 # Install Oinker
-dcos marathon app add examples/oinker/oinker.json
+dcos marathon app add examples/oinker/oinker-${CASSANDRA_PKG_VERSION}.json
 ci/test-app-health.sh 'oinker'
 
 # Test HTTP status
@@ -53,5 +78,10 @@ dcos marathon app remove oinker
 dcos package uninstall marathon-lb ${CONFIRM}
 
 # Uninstall Cassandra
-# Note: for versions of DC/OS before 1.10, janitor must be used to finalize cleanup
 dcos package uninstall cassandra ${CONFIRM}
+
+# DC/OS 1.10 added auto-cleanup. Prior versions need to use the janitor.
+if [[ "${CASSANDRA_PKG_CLEANUP:-}" == "true" ]]; then
+  dcos node ssh --leader --user=root --option StrictHostKeyChecking=no --option IdentityFile=$(pwd)/genconf/ssh_key \
+       "docker run mesosphere/janitor /janitor.py -r cassandra-role -p cassandra-principal -z dcos-service-cassandra"
+fi

@@ -23,8 +23,8 @@ Because containerization does not affect resource detection tools, each DC/OS no
 - Run dcos-docker on a systemd machine and configure the `mesos_executors.slice` to [configure max resources](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html) for all DC/OS user tasks (slice does not include DC/OS system tasks).
 
 **Memory Requirements:**
-- 4GiB (Required for smoke tests to pass)
-- 6GiB (Recommended)
+- 4GiB (Required to deploy)
+- 8GiB (Required for smoke tests to pass)
 
 ## Recommended Environments
 

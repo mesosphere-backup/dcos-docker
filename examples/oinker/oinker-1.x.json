@@ -1,0 +1,40 @@
+{
+  "id": "/oinker",
+  "instances": 3,
+  "labels": {
+    "HAPROXY_GROUP": "external",
+    "HAPROXY_0_VHOST": "oinker.acme.org"
+  },
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "mesosphere/oinker-go:latest",
+      "network": "BRIDGE",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 0,
+          "protocol": "tcp"
+        }
+      ]
+    }
+  },
+  "healthChecks": [
+    {
+      "path": "/ready",
+      "portIndex": 0,
+      "protocol": "HTTP",
+      "gracePeriodSeconds": 30,
+      "intervalSeconds": 10,
+      "timeoutSeconds": 5,
+      "maxConsecutiveFailures": 3,
+      "ignoreHttp1xx": false
+    }
+  ],
+  "cmd": "export OINKER_INSTANCE_NAME=${MESOS_TASK_ID} && oinker --cassandra-addr=node-0.cassandra.mesos --cassandra-repl=1",
+  "ports": [
+    0
+  ],
+  "cpus": 0.25,
+  "mem": 128
+}
