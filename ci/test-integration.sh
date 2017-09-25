@@ -8,10 +8,7 @@
 # Usage:
 # $ ci/test-e2e.sh
 
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o xtrace
+set -o errexit -o nounset -o pipefail -o xtrace
 
 if [[ -n "${LOG_LINES:-}" ]]; then
   LOG_LINES_ARG="-n=${LOG_LINES}"
@@ -65,7 +62,7 @@ TEST_ARGS+=' --junitxml=test-junit.xml'
 # Skip CCM-only tests
 TEST_ARGS+=' -m "not ccm"'
 # Use teamcity-messages to fold unbuffered stdout/stderr
-if [[ -n "${TEAMCITY_VERSION}" ]]; then
+if [[ -n "${TEAMCITY_VERSION:-}" ]]; then
   TEST_ARGS+=' --teamcity --capture=no'
 fi
 # Configure integration tests

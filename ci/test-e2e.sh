@@ -57,7 +57,8 @@ trap cleanup EXIT
 ./configure --auto
 
 # Networking integration tests require 2 private agents
-sed 's/^AGENTS :=.*/AGENTS := 2/' make-config.mk > make-config.mk.bak
+# Cassandra requires 3 private agents
+sed 's/^AGENTS :=.*/AGENTS := 3/' make-config.mk > make-config.mk.bak
 mv make-config.mk.bak make-config.mk
 
 # Unbuffered postflight output
