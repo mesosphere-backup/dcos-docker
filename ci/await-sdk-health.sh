@@ -4,7 +4,7 @@
 # Times out after 5 minutes.
 #
 # Usage:
-# $ ci/test-sdk-health.sh <app-id> [timeout-seconds]
+# $ ci/await-sdk-health.sh <app-id> [timeout-seconds]
 
 set -o errexit -o nounset -o pipefail
 

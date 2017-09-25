@@ -47,23 +47,23 @@ set -o xtrace
 
 # Install Cassandra
 dcos package install --options=examples/oinker/pkg-cassandra-${CASSANDRA_PKG_VERSION}.json cassandra --yes
-ci/test-app-health.sh 'cassandra'
+ci/await-app-health.sh 'cassandra'
 
 if [[ "${CASSANDRA_PKG_VERSION}" == '2.x' ]]; then
   # Block until node deployment is complete (15 minute timeout)
-  ci/test-sdk-health.sh 'cassandra' 'cassandra' 900
+  ci/await-sdk-health.sh 'cassandra' 'cassandra' 900
 fi
 
 # Install Marathon-LB
 dcos package install --options=examples/oinker/pkg-marathon-lb.json marathon-lb --yes
-ci/test-app-health.sh 'marathon-lb'
+ci/await-app-health.sh 'marathon-lb'
 
 # Install Oinker
 dcos marathon app add examples/oinker/oinker-${CASSANDRA_PKG_VERSION}.json
-ci/test-app-health.sh 'oinker'
+ci/await-app-health.sh 'oinker'
 
-# Test HTTP status
-curl --fail --location --silent --show-error "http://${OINKER_HOST}/" -o /dev/null
+# Block until Marathon-LB routing works (1 minute timeout)
+ci/await-url-health.sh "http://${OINKER_HOST}/" 60
 
 # Test load balancing uses all instances
 ci/test-oinker-lb.sh
