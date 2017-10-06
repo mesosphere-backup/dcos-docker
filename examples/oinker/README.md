@@ -6,43 +6,29 @@ Cassandra and Marathon-LB can be installed from the Mesosphere Universe, but the
 
 Use the following steps to install and access Oinker:
 
-1. Setup
-
-    See [Setup](/README.md#setup).
-
-    **Linux:** Make sure your disk has at least 20GB free space for DC/OS Docker to use.
-
-    **Vagrant:** Resize the VM disk size to at least 20GB.
-
-    The default box image only has 10GB of disk space, which will almost completely fill up just by deploying DC/OS, not leaving any space for services. Resizing must be done from the host before deploying DC/OS.
-
-    ```
-    vagrant/resize-disk.sh 20480
-    ```
-
 1. Deploy DC/OS
 
-   See [Deploy](/README.md#deploy).
+   1. Make sure your disk has at least 20GB free space for DC/OS Docker to use. If on Vagrant, you may need to resize the root disk with `vagrant/resize-disk.sh 20480`.
+   
+   1. Make sure you machine has at least 10GB free memory for DC/OS Docker to use. If on Vagrant, the VM memory is configurable in the Vagrantfile.
+    
+   1. Follow [Quick Start](/README.md#quick-start) instructions.
 
-   The default configuration of 1 master, 1 private agent, and 1 public agent should work as long as the host has enough memory and disk available. Vagrant VM memory is configurable in the Vagrantfile.
+       The default configuration of 1 master, 1 private agent, and 1 public agent works for the 1.x config (single-node cassandra), but the 2.x config (three-node cassandra) requires 3 private agents.
 
-1. Setup routing
-
-    **Linux:** No routing needed.
-
-    **Vagrant:** See [Network Routing](/README.md#network-routing).
+1. Follow [Network Routing](/README.md#network-routing) instructions.
 
 1. Install DC/OS CLI
 
-   See DC/OS Web UI for instructions (bottom left corner).
+    See DC/OS Web UI for instructions.
 
 1. Log in to DC/OS
 
-   ```
-   dcos auth login
-   ```
+    ```
+    dcos auth login
+    ```
 
-   Follow the instructions (different for DC/OS vs Enterprise DC/OS).
+    Follow the instructions (different for DC/OS vs Enterprise DC/OS).
 
 1. Install Cassandra
 
