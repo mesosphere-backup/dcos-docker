@@ -198,6 +198,55 @@ Use one of the following alternative solutions instead:
 - [docker-mac-network](https://github.com/wojas/docker-mac-network) sets up a VPN running in containers and uses a VPN client to route traffic to other containers.
 - [Docker for Mac - Host Bridge](https://github.com/mal/docker-for-mac-host-bridge) uses a kernel extension to add a new network interface and Docker network bridge.
 
+## Hostnames
+
+You can modify `/etc/hosts` to create hostnames that route to the DC/OS nodes.
+This makes it easier to access DC/OS without looking up the IPs each time.
+
+Example hostnames:
+
+```
+172.17.0.2	m1.dcos
+172.17.0.3	a1.dcos
+172.17.0.4	a2.dcos
+172.17.0.6	p1.dcos oinker.acme.org
+```
+
+Both setup and cleanup will require your sudo password to modify `/etc/hosts`, if they aren't run as root.
+
+**Setup**
+
+```console
+make hosts
+```
+
+**Cleanup**
+
+```console
+make clean-hosts
+```
+
+### Hostnames: Vagrant
+
+On Vagrant, you'll probably want to modify `/etc/hosts` on both the host (local machine) and the guest (VM).
+That way, if you also have [Network Routing](#network-routing-vagrant) configured you can access `http://m1.dcos` and the other hostnames in your browser and with the CLI on the host.
+
+For this, copy the `*.dcos` entries from the output of `make hosts` on the guest into your host `/etc/hosts`:
+
+**Setup**
+
+```
+vagrant ssh -c 'make hosts' 2>/dev/null | sed -e '1,/After:/ d' | sudo tee -a /etc/hosts > /dev/null
+```
+
+**Cleanup**
+
+```
+vagrant ssh -c 'make clean-hosts'
+cat /etc/hosts | sed '/.*.dcos/d' > ./hosts.local
+sudo mv ./hosts.local /etc/hosts
+```
+
 ### Node Shell Access
 
 With network routing configured, you can SSH directly into DC/OS nodes from the host:
