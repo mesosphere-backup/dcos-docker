@@ -303,13 +303,13 @@ hosts: ## Creates entries in /etc/hosts
 	@grep "\.dcos" /etc/hosts || echo "<empty>"
 	@$(call delete_host,\.dcos)
 	@$(foreach NUM,$(shell [[ $(MASTERS) == 0 ]] || seq 1 1 $(MASTERS)), \
-		$(call create_host,$(shell $(IP_CMD) $(MASTER_CTR)$(NUM)),m$(NUM).dcos) \
+		$(call create_host,$(shell $(IP_CMD) $(MASTER_CTR)$(NUM)),m$(NUM).dcos); \
 	)
 	@$(foreach NUM,$(shell [[ $(AGENTS) == 0 ]] || seq 1 1 $(AGENTS)), \
-		$(call create_host,$(shell $(IP_CMD) $(AGENT_CTR)$(NUM)),a$(NUM).dcos) \
+		$(call create_host,$(shell $(IP_CMD) $(AGENT_CTR)$(NUM)),a$(NUM).dcos); \
 	)
 	@$(foreach NUM,$(shell [[ $(PUBLIC_AGENTS) == 0 ]] || seq 1 1 $(PUBLIC_AGENTS)), \
-		$(call create_host,$(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)$(NUM)),p$(NUM).dcos) \
+		$(call create_host,$(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)$(NUM)),p$(NUM).dcos); \
 	)
 	@if [[ $(PUBLIC_AGENTS) != 0 ]]; then \
 		$(call create_host_alias,$(shell $(IP_CMD) $(PUBLIC_AGENT_CTR)1),oinker.acme.org); \

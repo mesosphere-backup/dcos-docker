@@ -118,7 +118,7 @@ endef
 # @param ip			IP address.
 # @param hostname	Canonical Hostname to route to the IP address.
 define create_host
-echo "$(1)	$(2)" | $(call sudo_write,/etc/hosts) tee -a /etc/hosts > /dev/null
+printf '$(1)\t$(2)\n' | $(call sudo_write,/etc/hosts) tee -a /etc/hosts > /dev/null
 endef
 
 # Define the function to add an alias to an existing /etc/hosts entry.
