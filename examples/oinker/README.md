@@ -6,23 +6,36 @@ Cassandra and Marathon-LB can be installed from the Mesosphere Universe, but the
 
 Use the following steps to install and access Oinker:
 
-1. Deploy DC/OS
+1. Verify Prerequisites
 
-   1. Make sure your disk has at least 20GB free space for DC/OS Docker to use. If on Vagrant, you may need to resize the root disk with `vagrant/resize-disk.sh 20480`.
-   
-   1. Make sure you machine has at least 10GB free memory for DC/OS Docker to use. If on Vagrant, the VM memory is configurable in the Vagrantfile.
-    
-   1. Follow [Quick Start](/README.md#quick-start) instructions.
+    1. At least **20GB free disk space**. On Vagrant, the default is sufficient but also configurable before deploy with `vagrant/resize-disk.sh 20480`.
 
-       The default configuration of 1 master, 1 private agent, and 1 public agent works for the 1.x config (single-node cassandra), but the 2.x config (three-node cassandra) requires 3 private agents.
+    1. At least **10GB free memory**. On Vagrant, the default is sufficient but also configurable before deploy in the Vagrantfile.
 
-1. Follow [Network Routing](/README.md#network-routing) instructions.
+1. Configure dcos-docker
 
-1. Install DC/OS CLI
+    Auto-detect the base config:
 
-    See DC/OS Web UI for instructions.
+    ```
+    ./configure --auto
+    ```
 
-1. Log in to DC/OS
+    Update the config to use 3 private agents:
+
+    ```
+    sed 's/^AGENTS :=.*/AGENTS := 3/' make-config.mk > make-config.mk.bak
+    mv make-config.mk.bak make-config.mk
+    ```
+
+1. Deploy DC/OS by following the [Quick Start](/README.md#quick-start) instructions.
+
+1. Setup [Network Routing](/README.md#network-routing) in order to be able to access the DC/OS nodes running as Docker containers.
+
+1. Setup [Hostnames](/README.md#hostnames) in order to be able to use `m1.dcos` to access the cluster and `oinker.acme.org` as the vhost to the public node load balancer.
+
+1. Install DC/OS CLI using the instructions in the [DC/OS Web UI](http://m1.dcos/).
+
+1. Log in to DC/OS:
 
     ```
     dcos auth login
@@ -36,9 +49,11 @@ Use the following steps to install and access Oinker:
     dcos package install --options=examples/oinker/pkg-cassandra-2.x.json cassandra --yes
     ```
 
-    This minimal config only runs a single Cassandra node, unlike the default config that runs three.
+    The Cassandra 1.x config uses a single node to minimize resource usage.
 
-    Cassandra takes a minute to deploy the scheduler and node-0 on private agents. Wait for both be running.
+    The Cassandra 2.x config uses three nodes because Cassandra 2.x does not support single node deployment.
+
+    Wait for all the expected Cassandra nodes to be running. This may take up to 15 minutes.
 
 1. Install Marathon-LB
 
@@ -55,30 +70,6 @@ Use the following steps to install and access Oinker:
     ```
 
     If Cassandra isn't completely ready before starting Oinker, Oinker may thrash and restart a few times before becoming healthy.
-
-1. Find the IP of the public agent
-
-    **Linux:**
-    ```
-    PUBLIC_IP="$(docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}" dcos-docker-pubagent1)"
-    ```
-
-    **Vagrant:**
-    ```
-    PUBLIC_IP="$(vagrant ssh -c "docker inspect --format "{{.NetworkSettings.Networks.bridge.IPAddress}}" dcos-docker-pubagent1" | tr -d "\015")"
-    ```
-
-1. Add oinker.acme.org to /etc/hosts
-
-    ```
-    echo "${PUBLIC_IP}"$'\toinker.acme.org' | sudo tee -a /etc/hosts
-    ```
-
-1. (Mac-only) Refresh the hostname resolver
-
-    ```
-    sudo killall -HUP mDNSResponder
-    ```
 
 1. Visit <http://oinker.acme.org> in a browser!
 
