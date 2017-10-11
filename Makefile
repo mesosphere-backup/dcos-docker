@@ -363,7 +363,7 @@ clean-hosts: ## Deletes dcos entries in /etc/hosts
 	@grep "\.dcos" /etc/hosts || echo "<empty>"
 
 vagrant-hosts: ## Creates entries in /etc/hosts on the guest VM and host machine
-	@vagrant ssh -c 'make hosts' 2>/dev/null | sed -e '1,/After:/ d' | sudo tee -a /etc/hosts > /dev/null
+	@vagrant ssh -c 'make hosts' 2>/dev/null | sed -e '1,/After:/ d' | $(call sudo_write,/etc/hosts) tee -a /etc/hosts > /dev/null
 
 clean-vagrant-hosts: clean-hosts ## Deletes dcos entries in /etc/hosts on the host machine and guest VM
 	@vagrant ssh -c 'make clean-hosts'
