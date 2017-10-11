@@ -227,15 +227,13 @@ For this, copy the `*.dcos` entries from the output of `make hosts` on the guest
 **Setup**
 
 ```
-vagrant ssh -c 'make hosts' 2>/dev/null | sed -e '1,/After:/ d' | sudo tee -a /etc/hosts > /dev/null
+make vagrant-hosts
 ```
 
 **Cleanup**
 
 ```
-vagrant ssh -c 'make clean-hosts'
-cat /etc/hosts | sed '/.*.dcos/d' > ./hosts.local
-sudo mv ./hosts.local /etc/hosts
+make clean-vagrant-hosts
 ```
 
 ### Node Shell Access

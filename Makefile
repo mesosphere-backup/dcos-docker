@@ -5,7 +5,7 @@
 .DEFAULT_GOAL := all
 include make-common.mk
 
-.PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test vagrant-network clean-vagrant-network hosts clean-hosts
+.PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test vagrant-network clean-vagrant-network hosts clean-hosts vagrant-hosts clean-vagrant-hosts
 
 ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
 
@@ -298,7 +298,7 @@ test: ips ## Executes the integration tests
 	[ -f ~/.ssh/known_hosts ] && ssh-keygen -R $(firstword $(MASTER_IPS)) || true
 	echo "$$TEST_INTEGRATION" | ssh -T -i $(GENCONF_DIR)/ssh_key -l root -p 22 -o StrictHostKeyChecking=no $(firstword $(MASTER_IPS))
 
-vagrant-network:
+vagrant-network: ## Creates a VirtualBox host-only network and routes Docker IPs to it
 	@VNET="$(vagrant_network)"; \
 	if [[ -z "$${VNET}" ]]; then \
 		echo "Creating network..."; \
@@ -318,7 +318,7 @@ vagrant-network:
 		echo "Vagrant Network Setup Complete!"; \
 	fi
 
-clean-vagrant-network:
+clean-vagrant-network: ## Removes the VirtualBox host-only network and Docker IP routes
 	@VNET="$(vagrant_network)"; \
 	if [[ -n "$${VNET}" ]]; then \
 		echo "Deleting Docker IP routes (172.17.0.0/16)..."; \
@@ -361,6 +361,14 @@ clean-hosts: ## Deletes dcos entries in /etc/hosts
 	@$(call delete_host,\.dcos)
 	@echo "After:"
 	@grep "\.dcos" /etc/hosts || echo "<empty>"
+
+vagrant-hosts: ## Creates entries in /etc/hosts on the guest VM and host machine
+	@vagrant ssh -c 'make hosts' 2>/dev/null | sed -e '1,/After:/ d' | sudo tee -a /etc/hosts > /dev/null
+
+clean-vagrant-hosts: Deletes dcos entries in /etc/hosts on the host machine and guest VM
+	@cat /etc/hosts | sed '/.*.dcos/d' > ./hosts.local
+	@$(call sudo_write,/etc/hosts) mv ./hosts.local /etc/hosts
+	@vagrant ssh -c 'make clean-hosts'
 
 # Define the function to start a master or agent container. This also starts
 # docker and sshd in the resulting container, and makes sure docker started
