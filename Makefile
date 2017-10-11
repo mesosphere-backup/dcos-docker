@@ -367,7 +367,7 @@ vagrant-hosts: ## Creates entries in /etc/hosts on the guest VM and host machine
 
 clean-vagrant-hosts: ## Deletes dcos entries in /etc/hosts on the host machine and guest VM
 	@cat /etc/hosts | sed '/.*.dcos/d' > ./hosts.local
-	@$(call sudo_write,/etc/hosts) mv ./hosts.local /etc/hosts
+	@sudo mv ./hosts.local /etc/hosts
 	@vagrant ssh -c 'make clean-hosts'
 
 # Define the function to start a master or agent container. This also starts
