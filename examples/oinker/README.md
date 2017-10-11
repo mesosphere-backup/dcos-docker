@@ -8,9 +8,18 @@ Use the following steps to install and access Oinker:
 
 1. Verify Prerequisites
 
-    1. At least **20GB free disk space**. On Vagrant, the default is sufficient but also configurable before deploy with `vagrant/resize-disk.sh 20480`.
+    1. At least **20GB free disk space**.
+    1. At least **10GB free memory**.
 
-    1. At least **10GB free memory**. On Vagrant, the default is sufficient but also configurable before deploy in the Vagrantfile.
+1. (Vagrant-only) Configure, launch, and shell into a Virtual Machine
+
+    ```
+    make vagrant-network
+    vagrant up
+    vagrant ssh
+    ```
+
+1. (Docker-For-Mac-only) Setup [Network Routing](/README.md#network-routing) in order to be able to access the DC/OS nodes running as Docker containers.
 
 1. Configure dcos-docker
 
@@ -27,15 +36,19 @@ Use the following steps to install and access Oinker:
     mv make-config.mk.bak make-config.mk
     ```
 
-1. Deploy DC/OS by following the [Quick Start](/README.md#quick-start) instructions.
+1. Deploy DC/OS:
 
-1. Setup [Network Routing](/README.md#network-routing) in order to be able to access the DC/OS nodes running as Docker containers.
+    ```
+    make all postflight
+    ```
 
 1. Setup [Hostnames](/README.md#hostnames) in order to be able to use `m1.dcos` to access the cluster and `oinker.acme.org` as the vhost to the public node load balancer.
 
-1. Install DC/OS CLI using the instructions in the [DC/OS Web UI](http://m1.dcos/).
+1. Log in to the [DC/OS Web UI](http://m1.dcos/).
 
-1. Log in to DC/OS:
+1. Install the DC/OS CLI using the instructions in the DC/OS Web UI.
+
+1. Log in to DC/OS with the CLI:
 
     ```
     dcos auth login
@@ -45,13 +58,21 @@ Use the following steps to install and access Oinker:
 
 1. Install Cassandra
 
-    ```
-    dcos package install --options=examples/oinker/pkg-cassandra-2.x.json cassandra --yes
-    ```
+    - (DC/OS >= v1.9) Cassandra 2.x
 
-    The Cassandra 1.x config uses a single node to minimize resource usage.
+        This configuration uses three nodes for high availability.
 
-    The Cassandra 2.x config uses three nodes because Cassandra 2.x does not support single node deployment.
+        ```
+        dcos package install --options=examples/oinker/pkg-cassandra-2.x.json cassandra --yes
+        ```
+
+    - (DC/OS < v1.9) Cassandra 1.x
+
+        This configuration uses single-node Cassandra to reduce resource requirements and deploy time.
+
+        ```
+        dcos package install --options=examples/oinker/pkg-cassandra-1.x.json cassandra --yes
+        ```
 
     Wait for all the expected Cassandra nodes to be running. This may take up to 15 minutes.
 
@@ -65,27 +86,18 @@ Use the following steps to install and access Oinker:
 
 1. Install Oinker
 
-    ```
-    dcos marathon app add examples/oinker/oinker-2.x.json
-    ```
+    - (DC/OS >= v1.9) Configured for Cassandra 2.x
+
+        ```
+        dcos marathon app add examples/oinker/oinker-2.x.json
+        ```
+
+    - (DC/OS < v1.9) Configured for Cassandra 1.x
+
+        ```
+        dcos marathon app add examples/oinker/oinker-1.x.json
+        ```
 
     If Cassandra isn't completely ready before starting Oinker, Oinker may thrash and restart a few times before becoming healthy.
 
 1. Visit <http://oinker.acme.org> in a browser!
-
-## Configuration Options
-
-The Cassandra framework was rewritten for version 2.0.
-The new version requires 3 nodes and no longer allows seeds to be configured.
-So on DC/OS >= 1.9 the new configuration should be used.
-Older versions of DC/OS must use the older Cassandra 1.x.
-
-New 2.x Config:
-- [pkg-cassandra-2.x.json](pkg-cassandra-2.x.json)
-- [pkg-marathon-lb.json](pkg-marathon-lb.json)
-- [oinker-2.x.json](oinker-2.x.json)
-
-Old 1.x Config:
-- [pkg-cassandra-1.x.json](pkg-cassandra-1.x.json)
-- [pkg-marathon-lb.json](pkg-marathon-lb.json)
-- [oinker-1.x.json](oinker-1.x.json)
