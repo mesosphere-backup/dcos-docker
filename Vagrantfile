@@ -3,7 +3,7 @@
 
 $dcos_box = ENV.fetch('DCOS_BOX', 'mesosphere/dcos-centos-virtualbox')
 $dcos_box_url = ENV.fetch('DCOS_BOX_URL', 'http://downloads.dcos.io/dcos-vagrant/metadata.json')
-$dcos_box_version = ENV.fetch('DCOS_BOX_VERSION', '~> 0.9.1')
+$dcos_box_version = ENV.fetch('DCOS_BOX_VERSION', '~> 0.9.2')
 
 # configure vbox host-only network
 system('./vagrant/vbox-network.sh')
@@ -26,7 +26,7 @@ Vagrant.configure(2) do |config|
     vm_cfg.vm.provider :virtualbox do |v|
       v.name = vm_cfg.vm.hostname
       v.cpus = 2
-      v.memory = 8192
+      v.memory = 10240
       # configure guest to use host DNS resolver
       v.customize ['modifyvm', :id, '--natdnshostresolver1', 'on']
     end
