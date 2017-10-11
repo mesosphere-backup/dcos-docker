@@ -5,7 +5,7 @@
 .DEFAULT_GOAL := all
 include make-common.mk
 
-.PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test hosts clean-hosts
+.PHONY: all vagrant build-base build-base-docker build build-all start postflight master agent public_agent installer clean-installer genconf registry open-browser preflight deploy clean clean-certs clean-containers clean-slice test vagrant-network clean-vagrant-network hosts clean-hosts
 
 ALL_AGENTS := $$(( $(PUBLIC_AGENTS)+$(AGENTS) ))
 
@@ -298,6 +298,44 @@ test: ips ## Executes the integration tests
 	[ -f ~/.ssh/known_hosts ] && ssh-keygen -R $(firstword $(MASTER_IPS)) || true
 	echo "$$TEST_INTEGRATION" | ssh -T -i $(GENCONF_DIR)/ssh_key -l root -p 22 -o StrictHostKeyChecking=no $(firstword $(MASTER_IPS))
 
+vagrant-network:
+	@VNET="$(vagrant_network)"; \
+	if [[ -z "$${VNET}" ]]; then \
+		echo "Creating network..."; \
+		VNET="$$(VBoxManage hostonlyif create | grep 'successfully created' | sed "s/Interface '\(.*\)' was successfully created/\1/")"; \
+		echo "Configuring network: $${VNET}..."; \
+		VBoxManage hostonlyif ipconfig --ip 192.168.65.1 "$${VNET}"; \
+		echo "Enabling network: $${VNET}..."; \
+		if hash ip 2>/dev/null; then \
+			sudo ip link set "$${VNET}" up; \
+			echo "Routing Docker IPs to VM..."; \
+			sudo ip route replace 172.17.0.0/16 via 192.168.65.50; \
+		else \
+			sudo ifconfig "$${VNET}" up; \
+			echo "Adding Docker IP routes (172.17.0.0/16)..."; \
+			sudo route -nv add -net 172.17.0.0/16 192.168.65.50; \
+		fi; \
+		echo "Vagrant Network Setup Complete!"; \
+	fi
+
+clean-vagrant-network:
+	@VNET="$(vagrant_network)"; \
+	if [[ -n "$${VNET}" ]]; then \
+		echo "Deleting Docker IP routes (172.17.0.0/16)..."; \
+		if hash ip 2>/dev/null; then \
+			sudo ip route del 172.17.0.0/16; \
+			echo "Disabling network: $${VNET}..."; \
+			sudo ip link set "$${VNET}" down; \
+		else \
+			sudo route delete 172.17.0.0/16; \
+			echo "Disabling network: $${VNET}..."; \
+			sudo ifconfig "$${VNET}" down; \
+		fi; \
+		echo "Deleting network..."; \
+		VBoxManage hostonlyif remove "$${VNET}"; \
+		echo "Vagrant Network Teardown Complete!"; \
+	fi
+
 hosts: ## Creates entries in /etc/hosts
 	@echo "Before:"
 	@grep "\.dcos" /etc/hosts || echo "<empty>"
@@ -461,4 +499,9 @@ export SLAVE_HOSTS='$(subst ${space},${comma},$(AGENT_IPS))'
 export PUBLIC_SLAVE_HOSTS='$(subst ${space},${comma},$(PUBLIC_AGENT_IPS))'
 cd '$(DCOS_PYTEST_DIR)'
 $(DCOS_PYTEST_CMD)
+endef
+
+# Define the function to lookup the vagrant host-only network name
+define vagrant_network
+$(shell VBoxManage list hostonlyifs | grep '^Name:\|IPAddress:' | sed 's/^.*:[[:space:]]*//g' | grep -B 1 '^192.168.65.1$$' | head -1)
 endef

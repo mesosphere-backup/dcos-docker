@@ -74,6 +74,9 @@ For other make commands, see `make help`.
 git clone https://github.com/dcos/dcos-docker
 cd dcos-docker
 
+# create a VirtualBox host-only network and route Docker IPs to it
+make vagrant-network
+
 # start a CentOS VM
 vagrant up
 
@@ -163,30 +166,18 @@ However, there are a few workarounds described below.
 
 To make the Docker containers in the VM reachable from the host, you can route Docker's IP subnet (`172.17.0.0/16`) through the VM's IP (`192.168.65.50`). This routing is not required if you deployed DC/OS to Docker on a native Linux host.
 
-Execute the following on the host machine. Once routing is set up, you can access DC/OS directly from the host.
-
 **Setup**
 
-On Linux:
-```console
-$ sudo ip route replace 172.17.0.0/16 via 192.168.65.50
+Routing is setup automatically when you create the VirtualBox network:
 ```
-
-On macOS:
-```console
-$ sudo route -nv add -net 172.17.0.0/16 192.168.65.50
+make vagrant-network
 ```
 
 **Cleanup**
 
-On Linux:
-```console
-$ sudo ip route del 172.17.0.0/16
+To cleanup the routing and delete the VirtualBox network:
 ```
-
-On macOS:
-```console
-$ sudo route delete 172.17.0.0/16
+make clean-vagrant-network
 ```
 
 ### Network Routing: Docker for Mac
@@ -258,7 +249,7 @@ host$ ssh -i genconf/ssh_key root@172.17.0.2
 Or you can SSH with the DC/OS CLI:
 
 ```console
-$ dcos node ssh --leader --user=root --option IdentityFile=genconf/ssh_key
+dcos node ssh --leader --user=root --option IdentityFile=genconf/ssh_key
 ```
 
 From the host (or SSH'd into Vagrant) you can also use Docker exec to open a shell:
@@ -314,7 +305,7 @@ the variable `AGENTS`. For example:
 
 ```console
 # start a cluster with 3 masters and 5 agents
-$ make MASTERS=3 AGENTS=5
+make MASTERS=3 AGENTS=5
 ```
 
 ### Changing the distro
@@ -325,7 +316,7 @@ By default the cluster will be spun up using a centos base image but if you
 want to test something else you can run:
 
 ```console
-$ make DISTRO=fedora
+make DISTRO=fedora
 ```
 
 ### Non-systemd Host
@@ -347,7 +338,7 @@ By default the "node" containers will include Docker 1.11.2.
 Docker 1.13.1 is also supported, but must be configured:
 
 ```console
-$ make DOCKER_VERSION=1.13.1
+make DOCKER_VERSION=1.13.1
 ```
 
 One reason to use Docker 1.13.1 might be to use the `overlay2` storage driver,
