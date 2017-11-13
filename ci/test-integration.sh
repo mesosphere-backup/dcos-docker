@@ -67,7 +67,7 @@ if [[ -n "${TEAMCITY_VERSION:-}" ]]; then
 fi
 # Configure integration tests
 tee >> make-config.mk << EOM
-DCOS_PYTEST_CMD := py.test ${TEST_ARGS}
+DCOS_PYTEST_CMD := pytest ${TEST_ARGS}
 EOM
 
 # Deploy
