@@ -48,7 +48,7 @@ DOCKER_IMAGE := mesosphere/dcos-docker
 
 # Test directory and command (make test)
 DCOS_PYTEST_DIR := /opt/mesosphere/active/dcos-integration-test/
-DCOS_PYTEST_CMD := py.test -vv
+DCOS_PYTEST_CMD := pytest -vv
 
 # Variable for the registry host
 REGISTRY_HOST := registry.local
