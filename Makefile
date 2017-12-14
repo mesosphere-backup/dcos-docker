@@ -460,7 +460,11 @@ endef
 
 # EXTRA_GENCONF_CONFIG is a way to add extra config parameters in scripts
 # calling out dcos-docker.
-EXTRA_GENCONF_CONFIG :=
+define EXTRA_GENCONF_CONFIG_DEFAULT
+fault_domain_enabled: false
+endef
+EXTRA_GENCONF_CONFIG := $(EXTRA_GENCONF_CONFIG_DEFAULT)
+
 define CONFIG_BODY
 ---
 agent_list:
