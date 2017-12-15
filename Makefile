@@ -474,6 +474,7 @@ master_discovery: static
 master_list:
 - $(subst ${space},${newline} ,$(MASTER_IPS))
 process_timeout: 10000
+fault_domain_enabled: false
 resolvers:
 - $(subst ${space},${newline} ,$(RESOLVERS))
 ssh_port: 22
