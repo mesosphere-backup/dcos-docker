@@ -82,23 +82,27 @@ function download_installer() {
 function validate_installer_path() {
   DCOS_INSTALLER_PATH="${1}"
   echo "Validating installer path..."
+  # allow file to be a symlink
   if [[ -L "${DCOS_INSTALLER_PATH}" ]]; then
-    #symlink
     installer_link_path="$(readlink "${DCOS_INSTALLER_PATH}")"
     installer_dir="$(dirname "${installer_link_path}")"
+    installer_name="$(basename "${installer_link_path}")"
   else
     installer_dir="$(dirname "${DCOS_INSTALLER_PATH}")"
+    installer_name="$(basename "${DCOS_INSTALLER_PATH}")"
   fi
+  # allow the parent directory to be a symlink
   if [[ -L "${installer_dir}" ]]; then
     installer_dir="$(readlink "${installer_dir}")"
   fi
+  # resolve the absolute path of the parent directory
   installer_dir="$(cd "${installer_dir}" && pwd -P)"
 
   #echo "Installer Dir: ${installer_dir}"
   #echo "dcos-docker Dir: $(pwd -P)"
 
-  if ! [[ "${installer_dir}/" =~ "$(pwd -P)/"* ]]; then
-    echo >&2 "Installer must be in or under the dcos-docker directory!"
+  if ! [[ -f "${installer_dir}/${installer_name}" ]]; then
+    echo >&2 "Installer not found (after resolving symlinks): ${installer_dir}/${installer_name}"
     exit 2
   fi
 }
@@ -382,13 +386,13 @@ function docker_nameservers() {
 
 while true; do
   echo
-  DCOS_INSTALLER_PATH='dcos_generate_config.sh'
-  prompt_custom "Enter DC/OS installer path" "DCOS_INSTALLER_PATH"
+  DCOS_INSTALLER_PATH='${PWD}/dcos_generate_config.sh'
+  prompt_custom "Enter the DC/OS installer absolute path" "DCOS_INSTALLER_PATH"
   if [[ -f "${DCOS_INSTALLER_PATH}" ]]; then
     break
   fi
   echo "Installer not found."
-  DCOS_INSTALLER_PATH='dcos_generate_config.sh'
+  DCOS_INSTALLER_PATH='${PWD}/dcos_generate_config.sh'
 
   echo
   CONFIRM_DOWNLOAD='yes'
@@ -591,7 +595,7 @@ echo
 CONFIG_PATH='make-config.mk'
 echo "Generating dcos-docker config..."
 cat > "${CONFIG_PATH}" << EOM
-DCOS_GENERATE_CONFIG_PATH := \$(CURDIR)/${DCOS_INSTALLER_PATH}
+DCOS_GENERATE_CONFIG_PATH := ${DCOS_INSTALLER_PATH}
 DOCKER_VERSION := ${DOCKER_VERSION}
 DOCKER_STORAGEDRIVER := ${DOCKER_STORAGEDRIVER}
 MESOS_SYSTEMD_ENABLE_SUPPORT := ${MESOS_SYSTEMD_ENABLE_SUPPORT}
