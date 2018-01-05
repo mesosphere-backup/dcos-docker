@@ -136,10 +136,12 @@ See [make-defaults.mk](make-defaults.mk) for a full list of manually configurabl
 
 Official releases of DC/OS can be found at <http://dcos.io/releases/>.
 
-By default, DC/OS Docker (`./configure`) downloads the latest **stable** version of DC/OS.
+By default, `./configure --auto` downloads the latest **stable** version of DC/OS.
 
-To use a different version, specify the path to the installer interactively when running `./configure` or manually in `make-config.mk` by setting `DCOS_GENERATE_CONFIG_PATH`.
-The installer file must be located in (or under) the `dcos-docker` directory.
+To use a different version, run `./configure` without the `--auto` option and specify the path to the installer.
+When running `configure`, the installer file must be located in (or under) the `dcos-docker` directory.
+
+Once `make_config.mk` has been created (manually or by running `configure`), a different installer can be specified by setting `DCOS_GENERATE_CONFIG_PATH` in `make_config.mk` or by running `make DCOS_GENERATE_CONFIG_PATH=<INSTALLER-PATH>`.
 
 [Enterprise DC/OS](https://mesosphere.com/product/) is also supported. Ask your sales representative for release artifacts.
 
