@@ -138,7 +138,7 @@ Official releases of DC/OS can be found at <http://dcos.io/releases/>.
 
 By default, `./configure` downloads the latest **stable** version of DC/OS.
 
-To use a different version, run `./configure` (without `--auto`) and specify the local path to the installer when prompted.
+To use a different version, run `./configure` and specify the absolute file path to the installer when prompted.
 
 Alternatively, once `make_config.mk` has been created (manually or by running `./configure`), a different installer can be specified by setting `DCOS_GENERATE_CONFIG_PATH` in `make_config.mk` or by passing a make variable on command execution (ex: `make DCOS_GENERATE_CONFIG_PATH=<INSTALLER-PATH>`).
 
