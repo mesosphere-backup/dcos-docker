@@ -12,3 +12,5 @@ output-virtualbox-ovf
 .idea
 make-config.mk
 *.log
+license.lcns
+license.txt

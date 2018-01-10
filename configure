@@ -4,8 +4,6 @@ set -o errexit -o nounset -o pipefail
 
 # Generates config.mk to avoid having to specify make configuration on every use.
 
-source vendor/semver_bash/semver.sh
-
 if [[ "${1:-}" == "--auto" ]]; then
   echo >&2 "Auto Mode Enabled"
   AUTO_DEFAULTS='true'
@@ -320,6 +318,10 @@ function docker_kernel_version() {
   docker info | grep "^Kernel Version" | sed 's/.*: //'
 }
 
+function docker_operating_system() {
+  docker info | grep "^Operating System" | sed 's/.*: //'
+}
+
 function docker_available_memory() {
   docker run --rm ${INTERACTIVE} alpine cat /proc/meminfo | grep MemAvailable | awk '{print $2}'
 }
@@ -391,12 +393,8 @@ echo "Detecting Docker server version..."
 DOCKER_SERVER_VERSION="$(docker_server_version)"
 echo "Server Version: ${DOCKER_SERVER_VERSION}"
 
-# Parse Docker server version
-# Strip suffix (it breaks semver comparisons)
-DOCKER_SERVER_VERSION="$(
-  semverParseInto "${DOCKER_SERVER_VERSION}" DSV_MAJOR DSV_MINOR DSV_PATCH DSV_SPECIAL
-  echo "${DSV_MAJOR}.${DSV_MINOR}.${DSV_PATCH}"
-)"
+# Strip suffix (it breaks semver comparisons).
+DOCKER_SERVER_VERSION="${DOCKER_SERVER_VERSION%%-*}"
 
 echo
 echo "Detecting Docker kernel version..."
@@ -404,19 +402,31 @@ DOCKER_KERNEL_VERSION="$(docker_kernel_version)"
 echo "Kernel Version: ${DOCKER_KERNEL_VERSION}"
 
 echo
+echo "Detecting Docker operating system..."
+DOCKER_OPERATING_SYSTEM="$(docker_operating_system)"
+echo "Operating System: ${DOCKER_OPERATING_SYSTEM}"
+
+echo
 echo "Detecting Docker for Mac..."
-DOCKER_FOR_MAC="$([[ "$(uname)" == 'Darwin' ]] && [[ "${DOCKER_KERNEL_VERSION}" == *"-moby" ]] && echo 'true' || echo 'false')"
+DOCKER_FOR_MAC='false'
+if [[ "$(uname)" == 'Darwin' ]]; then
+  if [[ "${DOCKER_OPERATING_SYSTEM}" == 'Docker for Mac' ]]; then
+    DOCKER_FOR_MAC='true'
+  elif [[ "${DOCKER_KERNEL_VERSION}" == *"-moby" ]]; then
+    DOCKER_FOR_MAC='true'
+  fi
+fi
 echo "Docker for Mac: ${DOCKER_FOR_MAC}"
 
 if [[ "${DOCKER_FOR_MAC}" == 'true' ]]; then
   # Docker 1.13.1 required (1.11.2 has a Docker-for-Mac-specific bug)
-  if semverLT "${DOCKER_SERVER_VERSION}" "1.13.1"; then
+  if vendor/semver_bash/testver.sh "${DOCKER_SERVER_VERSION}" -lt "1.13.1"; then
     echo >&2 "Unsupported Docker server version! Requires 1.13.1 or greater."
     exit 2
   fi
 else
   # Docker 1.11.2 required
-  if semverLT "${DOCKER_SERVER_VERSION}" "1.11.2"; then
+  if vendor/semver_bash/testver.sh "${DOCKER_SERVER_VERSION}" -lt "1.11.2"; then
     echo >&2 "Unsupported Docker server version! Requires 1.11.2 or greater."
     exit 2
   fi
@@ -555,8 +565,8 @@ if [[ "${DCOS_VARIANT}" == "ee" ]]; then
     HASH_RESPONSE="$(bash dcos_generate_config.sh --hash-password "${SUPERUSER_PASSWORD}")"
     SUPERUSER_PASSWORD_HASH="$(echo "${HASH_RESPONSE}" | tail -1)"
     if [[ "${SUPERUSER_PASSWORD_HASH}" != '$6$'* ]]; then
-      echo "Failed to hash password!"
-      echo "${HASH_RESPONSE}"
+      echo >&2 "Failed to hash password!"
+      echo >&2 "${HASH_RESPONSE}"
       exit 2
     fi
   fi

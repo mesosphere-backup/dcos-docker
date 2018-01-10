@@ -478,11 +478,39 @@ resolvers:
 - $(subst ${space},${newline} ,$(RESOLVERS))
 ssh_port: 22
 ssh_user: root
-superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
-superuser_username: $(SUPERUSER_USERNAME)
 platform: docker
 check_time: false
+$(if $(filter $(dcos_variant),ee),$(ENTERPRISE_CONFIG_BODY))
 $(EXTRA_GENCONF_CONFIG)
+endef
+
+# Enterprise specific configuration fields.
+define ENTERPRISE_CONFIG_BODY
+superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
+superuser_username: $(SUPERUSER_USERNAME)
+$(if $(call test_version,$(dcos_version_semver),-ge,1.11.0),fault_domain_enabled: false,)
+endef
+
+# Shell script that compares two versions.
+# Prints 'true' or empty string for false, so it can be used in inline if conditionals.
+# @param version1	  Left operand.
+# @param operator	  Comparison operation to perform.
+# @param version2	  Right operand.
+define test_version
+$(shell vendor/semver_bash/testver.sh $(1) $(2) $(3) && echo 'true')
+endef
+
+# Normalization strips the suffix and adds a patch version if needed (ex: 1.11-dev -> 1.11.0).
+define dcos_version_semver
+$(shell echo "$(dcos_version)" | sed -e 's/-.*$$//' -e 's/^\([^.]*\.[^.]*\)$$/\1.0/')
+endef
+
+define dcos_version
+$(shell bash "$(DCOS_GENERATE_CONFIG_PATH)" --version | grep 'version' | cut -d ':' -f 2 | cut -d '"' -f 2)
+endef
+
+define dcos_variant
+$(shell bash "$(DCOS_GENERATE_CONFIG_PATH)" --version | grep 'variant' | cut -d ':' -f 2 | cut -d '"' -f 2)
 endef
 
 # Define the function to run postflight on a specific node.

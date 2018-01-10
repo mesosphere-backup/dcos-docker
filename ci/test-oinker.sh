@@ -13,34 +13,32 @@ OINKER_HOST="${OINKER_HOST:-oinker.acme.org}"
 project_dir=$(cd "$(dirname "${BASH_SOURCE}")/.." && pwd -P)
 cd "${project_dir}"
 
-source vendor/semver_bash/semver.sh
+CLI_VERSION="$(dcos --version | grep dcoscli.version | cut -d'=' -f2)"
+
+# Strip suffix, if present, and add patch version segment, if missing.
+CLI_VERSION_SEMVER="$(echo "${CLI_VERSION}" | sed -e 's/-.*$//' -e 's/^\([^.]*\.[^.]*\)$/\1.0/')"
 
 # CLI v0.5.3 added a confirmation prompt to uninstall and --yes to bypass it.
-CLI_VERSION="$(dcos --version | grep dcoscli.version | cut -d'=' -f2)"
-if semverLT "${CLI_VERSION}" "0.5.3"; then
-  CONFIRM=''
-else
+if vendor/semver_bash/testver.sh "${CLI_VERSION_SEMVER}" -ge "0.5.3"; then
   CONFIRM='--yes'
 fi
 
 DCOS_VERSION="$(dcos --version | grep dcos.version | cut -d'=' -f2)"
 
-# strip minor version and suffix
-if [[ "${DCOS_VERSION}" =~ ^([^.]*\.[^.-]*).* ]]; then
-  DCOS_VERSION="${BASH_REMATCH[1]}.0"
-fi
+# Strip suffix, if present, and add patch version segment, if missing.
+DCOS_VERSION_SEMVER="$(echo "${DCOS_VERSION}" | sed -e 's/-.*$//' -e 's/^\([^.]*\.[^.]*\)$/\1.0/')"
 
 # DC/OS 1.10 added auto-cleanup. Prior versions need to use the janitor.
-if semverLT "${DCOS_VERSION}" "1.10.0"; then
+if vendor/semver_bash/testver.sh "${DCOS_VERSION_SEMVER}" -lt "1.10.0"; then
   CASSANDRA_PKG_CLEANUP="true"
 fi
 
 # Latest Cassandra requires >= 1.9
 # https://github.com/mesosphere/universe/blob/version-3.x/repo/packages/C/cassandra/26/package.json#L3
-if semverLT "${DCOS_VERSION}" "1.9.0"; then
-  CASSANDRA_PKG_VERSION='1.x'
-else
+if vendor/semver_bash/testver.sh "${DCOS_VERSION_SEMVER}" -ge "1.9.0"; then
   CASSANDRA_PKG_VERSION='2.x'
+else
+  CASSANDRA_PKG_VERSION='1.x'
 fi
 
 set -o xtrace
@@ -75,10 +73,10 @@ ci/test-oinker-oinking.sh
 dcos marathon app remove oinker
 
 # Uninstall Marathon-LB
-dcos package uninstall marathon-lb ${CONFIRM}
+dcos package uninstall marathon-lb ${CONFIRM:-}
 
 # Uninstall Cassandra
-dcos package uninstall cassandra ${CONFIRM}
+dcos package uninstall cassandra ${CONFIRM:-}
 
 # DC/OS 1.10 added auto-cleanup. Prior versions need to use the janitor.
 if [[ "${CASSANDRA_PKG_CLEANUP:-}" == "true" ]]; then

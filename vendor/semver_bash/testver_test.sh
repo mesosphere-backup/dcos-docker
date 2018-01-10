@@ -5,8 +5,6 @@ set -o nounset -o pipefail
 project_dir=$(cd "$(dirname "${BASH_SOURCE}")" && pwd -P)
 cd "${project_dir}"
 
-source ./semver.sh
-
 semverTest() {
 local A=R1.3.2
 local B=R2.3.2
@@ -16,140 +14,130 @@ local E=R1.3.2a
 local F=R1.3.2b
 local G=R1.2.3
 
-local MAJOR=0
-local MINOR=0
-local PATCH=0
-local SPECIAL=""
-
-semverParseInto $A MAJOR MINOR PATCH SPECIAL
-echo "$A -> M:$MAJOR m:$MINOR p:$PATCH s:$SPECIAL. Expect M:1 m:3 p:2 s:"
-semverParseInto $E MAJOR MINOR PATCH SPECIAL
-echo "$E -> M:$MAJOR m:$MINOR p:$PATCH s:$SPECIAL. Expect M:1 m:3 p:2 s:a"
-
 echo "Equality comparisons"
-semverEQ $A $A
+./testver.sh $A -eq $A
 echo "$A == $A -> $?. Expect 0."
 
-semverLT $A $A
+./testver.sh $A -lt $A
 echo "$A < $A -> $?. Expect 1."
 
-semverGT $A $A
+./testver.sh $A -gt $A
 echo "$A > $A -> $?. Expect 1."
 
 
 echo "Major number comparisons"
-semverEQ $A $B
+./testver.sh $A -eq $B
 echo "$A == $B -> $?. Expect 1."
 
-semverLT $A $B
+./testver.sh $A -lt $B
 echo "$A < $B -> $?. Expect 0."
 
-semverGT $A $B
+./testver.sh $A -gt $B
 echo "$A > $B -> $?. Expect 1."
 
-semverEQ $B $A
+./testver.sh $B -eq $A
 echo "$B == $A -> $?. Expect 1."
 
-semverLT $B $A
+./testver.sh $B -lt $A
 echo "$B < $A -> $?. Expect 1."
 
-semverGT $B $A
+./testver.sh $B -gt $A
 echo "$B > $A -> $?. Expect 0."
 
 
 echo "Minor number comparisons"
-semverEQ $A $C
+./testver.sh $A -eq $C
 echo "$A == $C -> $?. Expect 1."
 
-semverLT $A $C
+./testver.sh $A -lt $C
 echo "$A < $C -> $?. Expect 0."
 
-semverGT $A $C
+./testver.sh $A -gt $C
 echo "$A > $C -> $?. Expect 1."
 
-semverEQ $C $A
+./testver.sh $C -eq $A
 echo "$C == $A -> $?. Expect 1."
 
-semverLT $C $A
+./testver.sh $C -lt $A
 echo "$C < $A -> $?. Expect 1."
 
-semverGT $C $A
+./testver.sh $C -gt $A
 echo "$C > $A -> $?. Expect 0."
 
 echo "patch number comparisons"
-semverEQ $A $D
+./testver.sh $A -eq $D
 echo "$A == $D -> $?. Expect 1."
 
-semverLT $A $D
+./testver.sh $A -lt $D
 echo "$A < $D -> $?. Expect 0."
 
-semverGT $A $D
+./testver.sh $A -gt $D
 echo "$A > $D -> $?. Expect 1."
 
-semverEQ $D $A
+./testver.sh $D -eq $A
 echo "$D == $A -> $?. Expect 1."
 
-semverLT $D $A
+./testver.sh $D -lt $A
 echo "$D < $A -> $?. Expect 1."
 
-semverGT $D $A
+./testver.sh $D -gt $A
 echo "$D > $A -> $?. Expect 0."
 
 echo "special section vs no special comparisons"
-semverEQ $A $E
+./testver.sh $A -eq $E
 echo "$A == $E -> $?. Expect 1."
 
-semverLT $A $E
+./testver.sh $A -lt $E
 echo "$A < $E -> $?. Expect 1."
 
-semverGT $A $E
+./testver.sh $A -gt $E
 echo "$A > $E -> $?. Expect 0."
 
-semverEQ $E $A
+./testver.sh $E -eq $A
 echo "$E == $A -> $?. Expect 1."
 
-semverLT $E $A
+./testver.sh $E -lt $A
 echo "$E < $A -> $?. Expect 0."
 
-semverGT $E $A
+./testver.sh $E -gt $A
 echo "$E > $A -> $?. Expect 1."
 
 echo "special section vs special comparisons"
-semverEQ $E $F
+./testver.sh $E -eq $F
 echo "$E == $F -> $?. Expect 1."
 
-semverLT $E $F
+./testver.sh $E -lt $F
 echo "$E < $F -> $?. Expect 0."
 
-semverGT $E $F
+./testver.sh $E -gt $F
 echo "$E > $F -> $?. Expect 1."
 
-semverEQ $F $E
+./testver.sh $F -eq $E
 echo "$F == $E -> $?. Expect 1."
 
-semverLT $F $E
+./testver.sh $F -lt $E
 echo "$F < $E -> $?. Expect 1."
 
-semverGT $F $E
+./testver.sh $F -gt $E
 echo "$F > $E -> $?. Expect 0."
 
 echo "Minor and patch number comparisons"
-semverEQ $A $G
+./testver.sh $A -eq $G
 echo "$A == $G -> $?. Expect 1."
 
-semverLT $A $G
+./testver.sh $A -lt $G
 echo "$A < $G -> $?. Expect 1."
 
-semverGT $A $G
+./testver.sh $A -gt $G
 echo "$A > $G -> $?. Expect 0."
 
-semverEQ $G $A
+./testver.sh $G -eq $A
 echo "$G == $A -> $?. Expect 1."
 
-semverLT $G $A
+./testver.sh $G -lt $A
 echo "$G < $A -> $?. Expect 0."
 
-semverGT $G $A
+./testver.sh $G -gt $A
 echo "$G > $A -> $?. Expect 1."
 }
 
