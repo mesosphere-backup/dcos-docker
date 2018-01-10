@@ -489,6 +489,7 @@ define ENTERPRISE_CONFIG_BODY
 superuser_password_hash: $(SUPERUSER_PASSWORD_HASH)
 superuser_username: $(SUPERUSER_USERNAME)
 $(if $(call test_version,$(dcos_version_semver),-ge,1.11.0),fault_domain_enabled: false,)
+$(if $(call test_version,$(dcos_version_semver),-ge,1.11.0),license_key_contents: "$(LICENSE_KEY)",)
 endef
 
 # Shell script that compares two versions.
