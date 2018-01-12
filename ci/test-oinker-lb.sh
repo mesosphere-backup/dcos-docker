@@ -30,17 +30,20 @@ echo >&2  "Looking up app (${APP_ID}) instances..."
 INSTANCES="$(dcos marathon app show "${APP_ID}" | jq '.instances')"
 
 # Test load balancing uses all instances
-echo "Polling OINKER_HOST for Task ID..."
 declare -A TASK_IDS=()
 START_TIME=${SECONDS}
 while [[ ${#TASK_IDS[@]} -lt ${INSTANCES} ]]; do
-  TASK_ID="$(curl --fail --location --silent --show-error "http://${OINKER_HOST}/" | grep '<div.*>oinker.*</div>' | sed 's/.*\(oinker\.[^<]*\).*/\1/')"
+  echo "Polling http://${OINKER_HOST}/..."
+  if RESPONSE_BODY="$(curl --fail --location --silent --show-error "http://${OINKER_HOST}/")"; then
+    TASK_ID="$(echo "${RESPONSE_BODY}" | grep '<div.*>oinker.*</div>' | sed 's/.*\(oinker\.[^<]*\).*/\1/')"
+    echo "TASK_ID: ${TASK_ID}"
 
-  # strip arithmetic operators not allowed in associative array keys
-  TASK_ID="${TASK_ID//.}"
-  TASK_ID="${TASK_ID//-}"
+    # strip arithmetic operators not allowed in associative array keys
+    TASK_ID="${TASK_ID//.}"
+    TASK_ID="${TASK_ID//-}"
 
-  TASK_IDS[$TASK_ID]=true
+    TASK_IDS[$TASK_ID]=true
+  fi
 
   ELAPSED_TIME=$((${SECONDS} - ${START_TIME}))
   if [[ ${ELAPSED_TIME} -gt 30 ]]; then
