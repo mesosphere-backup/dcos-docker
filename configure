@@ -388,6 +388,9 @@ DCOS_VARIANT="$(echo "${DCOS_VERSION_META}" | grep 'variant' | cut -d ':' -f 2 |
 echo "Version: ${DCOS_VERSION}"
 echo "Variant: ${DCOS_VARIANT:-oss}"
 
+# Strip suffix, if present, and add patch version segment, if missing.
+DCOS_VERSION_SEMVER="$(echo "${DCOS_VERSION}" | sed -e 's/-.*$//' -e 's/^\([^.]*\.[^.]*\)$/\1.0/')"
+
 echo
 echo "Detecting Docker server version..."
 DOCKER_SERVER_VERSION="$(docker_server_version)"
@@ -570,6 +573,23 @@ if [[ "${DCOS_VARIANT}" == "ee" ]]; then
       exit 2
     fi
   fi
+
+  if vendor/semver_bash/testver.sh "${DCOS_VERSION_SEMVER}" -ge "1.11.0"; then
+    while true; do
+      echo
+      LICENSE_KEY_PATH="${PWD}/license.txt"
+      prompt_custom "Enter license key absolute file path" "LICENSE_KEY_PATH"
+      if [[ -f "${LICENSE_KEY_PATH}" ]]; then
+        break
+      fi
+      if [[ "${AUTO_DEFAULTS:-}" == 'true' ]]; then
+        echo >&2 "License key not found."
+        exit 2
+      else
+        echo "License key not found."
+      fi
+    done
+  fi
 fi
 
 echo
@@ -591,6 +611,11 @@ if [[ "${DCOS_VARIANT}" == "ee" ]]; then
 SUPERUSER_USERNAME := ${SUPERUSER_USERNAME}
 SUPERUSER_PASSWORD_HASH := $(escape_for_makefile "${SUPERUSER_PASSWORD_HASH}")
 EOM
+  if [[ -n "${LICENSE_KEY_PATH:-}" ]]; then
+    cat >> "${CONFIG_PATH}" << EOM
+LICENSE_KEY := $(escape_for_makefile "$(cat "${LICENSE_KEY_PATH}" | sed -e 's/[[:space:]]*$//')")
+EOM
+  fi
 fi
 cat "${CONFIG_PATH}"
 
