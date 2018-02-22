@@ -85,6 +85,8 @@ for version in "${versions[@]}"; do
 
 	if [[ "$distro" == "fedora" ]]; then
 		packages=( "${packages[@]/openssh-client/openssh-clients}" )
+		packages+=( findutils )
+		packages+=( procps-ng )
 	fi
 
 	# normalize array: strip duplicate spaces; trim spaces; remove blank lines; spaces to linebreaks
