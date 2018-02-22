@@ -135,6 +135,19 @@ for version in "${versions[@]}"; do
 		EOF
 	fi
 
+	# set up links for the distros that need 'em
+	case "$distro" in
+		debian|ubuntu)
+			echo "RUN ln -s /bin/mkdir /usr/bin/mkdir" >> "$version/Dockerfile"
+			echo "RUN ln -s /bin/ln /usr/bin/ln" >> "$version/Dockerfile"
+			echo "RUN ln -s /bin/tar /usr/bin/tar" >> "$version/Dockerfile"
+			echo "RUN ln -s /usr/sbin/useradd /usr/bin/useradd" >> "$version/Dockerfile"
+			echo "RUN ln -s /usr/sbin/groupadd /usr/bin/groupadd" >> "$version/Dockerfile"
+			echo "RUN ln -s /bin/systemd-tmpfiles /usr/bin/systemd-tmpfiles" >> "$version/Dockerfile"
+			;;
+		*) ;;
+	esac
+
 	cat >> "$version/Dockerfile" <<-'EOF'
 
 	COPY include/systemd/systemd-journald-init.service /lib/systemd/system/
