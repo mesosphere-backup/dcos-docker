@@ -10,6 +10,7 @@ RUN dnf install -y \
 		btrfs-progs \
 		ca-certificates \
 		curl \
+		findutils \
 		git \
 		iproute \
 		ipset \
@@ -21,6 +22,7 @@ RUN dnf install -y \
 		net-tools \
 		openssh-clients \
 		openssh-server \
+		procps-ng \
 		sudo \
 		systemd \
 		tar \
