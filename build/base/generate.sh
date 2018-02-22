@@ -85,6 +85,8 @@ for version in "${versions[@]}"; do
 
 	if [[ "$distro" == "fedora" ]]; then
 		packages=( "${packages[@]/openssh-client/openssh-clients}" )
+		packages+=( findutils )
+		packages+=( procps-ng )
 	fi
 
 	# normalize array: strip duplicate spaces; trim spaces; remove blank lines; spaces to linebreaks
@@ -132,6 +134,19 @@ for version in "${versions[@]}"; do
 			&& ln -vf /lib/systemd/system/multi-user.target /lib/systemd/system/default.target
 		EOF
 	fi
+
+	# set up links for the distros that need 'em
+	case "$distro" in
+		debian|ubuntu)
+			echo "RUN ln -s /bin/mkdir /usr/bin/mkdir" >> "$version/Dockerfile"
+			echo "RUN ln -s /bin/ln /usr/bin/ln" >> "$version/Dockerfile"
+			echo "RUN ln -s /bin/tar /usr/bin/tar" >> "$version/Dockerfile"
+			echo "RUN ln -s /usr/sbin/useradd /usr/bin/useradd" >> "$version/Dockerfile"
+			echo "RUN ln -s /usr/sbin/groupadd /usr/bin/groupadd" >> "$version/Dockerfile"
+			echo "RUN ln -s /bin/systemd-tmpfiles /usr/bin/systemd-tmpfiles" >> "$version/Dockerfile"
+			;;
+		*) ;;
+	esac
 
 	cat >> "$version/Dockerfile" <<-'EOF'
 
