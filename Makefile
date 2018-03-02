@@ -103,9 +103,6 @@ build-all: generate ## Build the base and base-docker images for all permutation
 	@echo "+ Building the base-docker images"
 	@$(foreach version,$(wildcard build/base-docker/*/Dockerfile),$(call build_base_docker_image,$(word 3,$(subst /, ,$(version)))))
 
-generate: $(CURDIR)/build/base ## generate the Dockerfiles for all the base distros.
-	@$(CURDIR)/build/base/generate.sh
-
 $(SSH_DIR): $(INCLUDE_DIR)
 	@mkdir -p $@
 
