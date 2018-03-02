@@ -6,6 +6,7 @@ RUN yum install -y \
 		btrfs-progs \
 		ca-certificates \
 		curl \
+		dbus \
 		git \
 		iproute \
 		ipset \
@@ -42,6 +43,12 @@ done \
 && rm -f /lib/systemd/system/basic.target.wants/* \
 && rm -f /lib/systemd/system/graphical.target.wants/* \
 && ln -vf /lib/systemd/system/multi-user.target /lib/systemd/system/default.target
+RUN ln -s /bin/mkdir /usr/bin/mkdir
+RUN ln -s /bin/ln /usr/bin/ln
+RUN ln -s /bin/tar /usr/bin/tar
+RUN ln -s /usr/sbin/useradd /usr/bin/useradd
+RUN ln -s /usr/sbin/groupadd /usr/bin/groupadd
+RUN ln -s /bin/systemd-tmpfiles /usr/bin/systemd-tmpfiles
 
 COPY include/systemd/systemd-journald-init.service /lib/systemd/system/
 RUN systemctl enable systemd-journald-init.service || true
