@@ -83,7 +83,7 @@ info: ips ## Provides information about the master and agent's ips.
 open-browser: ips ## Opens your browser to the master ip.
 	$(OPEN_CMD) "http://$(firstword $(MASTER_IPS))"
 
-build-base: generate $(SERVICE_DIR)/systemd-journald-init.service ## Build the base docker image.
+build-base: $(SERVICE_DIR)/systemd-journald-init.service ## Build the base docker image.
 	@echo "+ Building the base $(DISTRO) image"
 	@$(foreach distro,$(wildcard build/base/$(DISTRO)*/Dockerfile),$(call build_base_image,$(word 3,$(subst /, ,$(distro)))))
 	@docker tag $(DOCKER_IMAGE):base-$(DISTRO) $(DOCKER_IMAGE):base
@@ -97,14 +97,11 @@ build: build-base-docker $(GENCONF_DIR)/ip-detect $(SBIN_DIR)/dcos-postflight $(
 	@echo "+ Building the dcos-docker image"
 	@docker build --rm --force-rm -t $(DOCKER_IMAGE) .
 
-build-all: generate ## Build the base and base-docker images for all permutations of distros and docker versions.
+build-all: ## Build the base and base-docker images for all permutations of distros and docker versions.
 	@echo "+ Building the base images"
 	@$(foreach distro,$(wildcard build/base/*/Dockerfile),$(call build_base_image,$(word 3,$(subst /, ,$(distro)))))
 	@echo "+ Building the base-docker images"
 	@$(foreach version,$(wildcard build/base-docker/*/Dockerfile),$(call build_base_docker_image,$(word 3,$(subst /, ,$(version)))))
-
-generate: $(CURDIR)/build/base ## generate the Dockerfiles for all the base distros.
-	@$(CURDIR)/build/base/generate.sh
 
 $(SSH_DIR): $(INCLUDE_DIR)
 	@mkdir -p $@
