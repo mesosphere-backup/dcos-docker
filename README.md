@@ -1,6 +1,6 @@
 # Deprecation Notice
 
-This tool is deprecated in favor of the [DC/OS E2E CLI](https://dcos-e2e.readthedocs.io/en/latest/cli.html).
+This tool is deprecated in favor of the [DC/OS E2E CLI](https://dcos-e2e-cli.readthedocs.io/en/latest/).
 
 That means that we do not guarantee that DC/OS Docker will continue to work.
 
